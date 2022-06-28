@@ -27,14 +27,14 @@ from pyrosetta.rosetta.protocols.symmetry import SetupForSymmetryMover
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('pdb', type=str)
-    parser.add_argument('-xtal', type=str, require=True)
-    parser.add_argument('-ft', '--fold_tree', type=str, nargs='*', require=True)
+    parser.add_argument('-xtal', type=str, required=True)
+    parser.add_argument('-ft', '--fold_tree', type=str, nargs='*', required=True)
     parser.add_argument('-params', type=str, nargs='*')
     parser.add_argument('-cst', type=str)
-    parser.add_argument('-enzdescst', type=str, require=True)
-    parser.add_argument('-site', type=int, require=True)
-    parser.add_argument('-aa', type=str, require=True)
-    parser.add_argument('-symm', '--symmetry', type=str, require=True)
+    parser.add_argument('-enzdescst', type=str, required=True)
+    parser.add_argument('-site', type=int, required=True)
+    parser.add_argument('-aa', type=str, required=True)
+    parser.add_argument('-symm', '--symmetry', type=str, required=True)
     return parser.parse_args()
 
 def initialize_pyrosetta(args):
@@ -61,8 +61,6 @@ def create_pose(args):
     return pose, xtal_pose
 
 def set_fold_tree(edge_list):
-    # 'FOLD_TREE  EDGE 1 306 -1  EDGE 1 307 1  EDGE 307 316 -1 '
-    # 'FOLD_TREE  EDGE 1 306 -1  EDGE 1 307 1 '
     fold_tree = FoldTree()
     for edge_str in edge_list:
         edge_num = edge_str.split(',')
@@ -117,12 +115,9 @@ def create_residue_selector(site):
     interface_selector_2.group1_selector(movable_selector)
     interface_selector_2.group2_selector(static_selector)
     minimization_selector = OrResidueSelector(movable_selector, interface_selector_2)
-    # c_term_selector = ResidueIndexSelector('200-306,516-622')
-    # minimization_selector = AndResidueSelector(min_selector_temp, NotResidueSelector(c_term_selector))
-
-    return mutation_selector, repacking_selector, movable_selector, static_selector, minimization_selector
+    return mutation_selector, repacking_selector, static_selector, minimization_selector
     
-def create_fast_relax_mover(score_function, aa, mutation_selector, repacking_selector, movable_selector, \
+def create_fast_relax_mover(score_function, aa, mutation_selector, repacking_selector, \
         static_selector, minimization_selector):
     # task factory for the mutated pose
     task_factory = TaskFactory()
@@ -138,20 +133,12 @@ def create_fast_relax_mover(score_function, aa, mutation_selector, repacking_sel
     prevent = PreventRepackingRLT()
     task_factory.push_back(OperateOnResidueSubset(prevent, static_selector))
 
-    # task factory for the reference pose
-    ref_task_factory = TaskFactory()
-    ref_task_factory.push_back(IncludeCurrent())
-    repack_2 = RestrictToRepackingRLT()
-    ref_task_factory.push_back(OperateOnResidueSubset(repack_2, movable_selector))
-    prevent_2 = PreventRepackingRLT()
-    ref_task_factory.push_back(OperateOnResidueSubset(prevent_2, static_selector))
-
     # move map for both the mutated pose and the reference pose
     move_map = MoveMap()
     move_map.set_bb(True)
     minimization_vector = minimization_selector.apply(pose)
     move_map.set_chi(minimization_vector)
-    move_map.set_jump(1, True) # allow substrate to make rigid body movement
+    move_map.set_jump(1, True) # allow rigid body movement
 
     # fast relax mover for the mutated pose
     fast_relax = FastRelax()
@@ -159,16 +146,11 @@ def create_fast_relax_mover(score_function, aa, mutation_selector, repacking_sel
     fast_relax.set_task_factory(task_factory)
     fast_relax.set_movemap(move_map)
 
-    # fast relax mover for the reference pose
-    ref_fast_relax = FastRelax()
-    ref_fast_relax.set_scorefxn(score_function)
-    ref_fast_relax.set_task_factory(ref_task_factory)
-    ref_fast_relax.set_movemap(move_map)
-    return fast_relax, ref_fast_relax
+    return fast_relax
 
 def apply_fast_relax(fast_relax, pose, add_coord_cst, n_decoy):
     for decoy in range(n_decoy):
-        pose_copy = Pose(pose) # deep copy pose
+        pose_copy = Pose(pose)
         add_coord_cst.apply(pose_copy)
         fast_relax.apply(pose_copy)
         current_energy = calculate_energy(score_function, pose_copy)
@@ -207,11 +189,11 @@ def calculate_rmsd(pose, xtal_pose):
 
 def mutagenesis(score_function, site, aa, pose, xtal_pose, add_coord_cst, prefix):
     # create mutation, repacking, static, minimization residues selector
-    mutation_selector, repacking_selector, movable_selector, static_selector, \
-            minimization_selector = create_residue_selector(site)
+    mutation_selector, repacking_selector, static_selector, minimization_selector \
+            = create_residue_selector(site)
     # create relax task factories
-    fast_relax, ref_fast_relax = create_fast_relax_mover(score_function, aa, mutation_selector, \
-            repacking_selector, movable_selector, static_selector, minimization_selector)
+    fast_relax = create_fast_relax_mover(score_function, aa, mutation_selector, \
+            repacking_selector, static_selector, minimization_selector)
     # if the mutated pdb file exists, load this file
     if isfile(prefix + '_' + str(site) + aa + '.pdb'):
         point_mutated_pose = pose_from_pdb(prefix + '_' + str(site) + aa + '.pdb')
@@ -220,60 +202,40 @@ def mutagenesis(score_function, site, aa, pose, xtal_pose, add_coord_cst, prefix
         point_mutated_pose = apply_fast_relax(fast_relax, pose, add_coord_cst, n_decoy=10)
         calculate_rmsd(point_mutated_pose, xtal_pose)
         point_mutated_pose.dump_pdb(prefix + '_' + str(site) + aa + '.pdb')
-    # if the reference pdb file exists, load this file
-    if isfile(prefix + '_' + str(site) + aa + '.ref.pdb'):
-        ref_pose = pose_from_pdb(prefix + '_' + str(site) + aa + '.ref.pdb')
-    # if not, apply the FastRelax mover to a copy of the pose
-    else:
-        ref_pose = apply_fast_relax(ref_fast_relax, pose, add_coord_cst, n_decoy=10)
-        calculate_rmsd(ref_pose, xtal_pose)
-        ref_pose.dump_pdb(prefix + '_' + str(site) + aa + '.ref.pdb')
-    return point_mutated_pose, ref_pose
+    return point_mutated_pose
 
-def calculate_ddG(score_function, point_mutated_pose, ref_pose, site):
+def calculate_delta_G(score_function, point_mutated_pose, site):
     # calculate delta delta total energy
-    dd_total_energy = calculate_energy(score_function, point_mutated_pose) \
-            - calculate_energy(score_function, point_mutated_pose, score_type='coordinate_constraint') \
-            - calculate_energy(score_function, ref_pose) \
-            + calculate_energy(score_function, ref_pose, score_type='coordinate_constraint')
+    d_total_energy = calculate_energy(score_function, point_mutated_pose) \
+            - calculate_energy(score_function, point_mutated_pose, score_type='coordinate_constraint')
     # calculate delta delta shell energy
     shell_selector = ResidueIndexSelector('168,191,50,189,190,165,167,173,192,142,166,170,44,49,52,54,164,181,40,187,140,144,163,172,25,27,42')
-    dd_shell_energy = calculate_energy(score_function, point_mutated_pose, selector=shell_selector) \
-            - calculate_energy(score_function, point_mutated_pose, selector=shell_selector, score_type='coordinate_constraint') \
-            - calculate_energy(score_function, ref_pose, selector=shell_selector) \
-            + calculate_energy(score_function, ref_pose, selector=shell_selector, score_type='coordinate_constraint')
+    d_shell_energy = calculate_energy(score_function, point_mutated_pose, selector=shell_selector) \
+            - calculate_energy(score_function, point_mutated_pose, selector=shell_selector, score_type='coordinate_constraint')
     # calculate delta delta substrate energy
     substrate_selector = NotResidueSelector(get_protease_selector(pose))
-    dd_substrate_energy = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector) \
-            - calculate_energy(score_function, point_mutated_pose, selector=substrate_selector, score_type='coordinate_constraint') \
-            - calculate_energy(score_function, ref_pose, selector=substrate_selector) \
-            + calculate_energy(score_function, ref_pose, selector=substrate_selector, score_type='coordinate_constraint')
+    d_substrate_energy = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector) \
+            - calculate_energy(score_function, point_mutated_pose, selector=substrate_selector, score_type='coordinate_constraint')
     # calculate delta delta residue energy
     mutation_selector = ResidueIndexSelector(site)
-    dd_residue_energy = calculate_energy(score_function, point_mutated_pose, selector=mutation_selector) \
-            - calculate_energy(score_function, point_mutated_pose, selector=mutation_selector, score_type='coordinate_constraint') \
-            - calculate_energy(score_function, ref_pose, selector=mutation_selector) \
-            + calculate_energy(score_function, ref_pose, selector=mutation_selector, score_type='coordinate_constraint')
+    d_residue_energy = calculate_energy(score_function, point_mutated_pose, selector=mutation_selector) \
+            - calculate_energy(score_function, point_mutated_pose, selector=mutation_selector, score_type='coordinate_constraint')
     # calculate delta interaction energy
     protease_selector = get_protease_selector(pose)
     substrate_selector = NotResidueSelector(protease_selector)
-    delta_interaction_energy = calculate_interaction_energy(score_function, point_mutated_pose, protease_selector, substrate_selector) \
-            - calculate_interaction_energy(score_function, ref_pose, protease_selector, substrate_selector)
+    delta_interaction_energy = calculate_interaction_energy(score_function, point_mutated_pose, protease_selector, substrate_selector)
     # calculate delta constraint energy
-    delta_constraint_energy = calculate_energy(score_function, point_mutated_pose, score_type='atom_pair_constraint') + \
-            calculate_energy(score_function, point_mutated_pose, score_type='angle_constraint') + \
-            calculate_energy(score_function, point_mutated_pose, score_type='dihedral_constraint') - \
-            calculate_energy(score_function, ref_pose, score_type='atom_pair_constraint') - \
-            calculate_energy(score_function, ref_pose, score_type='angle_constraint') - \
-            calculate_energy(score_function, ref_pose, score_type='dihedral_constraint')
-    return dd_total_energy, dd_shell_energy, dd_substrate_energy, dd_residue_energy, \
+    delta_constraint_energy = calculate_energy(score_function, point_mutated_pose, score_type='atom_pair_constraint') \
+            + calculate_energy(score_function, point_mutated_pose, score_type='angle_constraint') \
+            + calculate_energy(score_function, point_mutated_pose, score_type='dihedral_constraint')
+    return d_total_energy, d_shell_energy, d_substrate_energy, d_residue_energy, \
             delta_interaction_energy, delta_constraint_energy
 
-def write_csv(site, aa, dd_total_energy, dd_shell_energy, dd_substrate_energy, \
-        dd_residue_energy, delta_interaction_energy, delta_constraint_energy):
+def write_csv(site, aa, d_total_energy, d_shell_energy, d_substrate_energy, \
+        d_residue_energy, delta_interaction_energy, delta_constraint_energy):
     with open(str(site) + '_' + aa + '.dat', 'w') as pf:
-        pf.write(str(round(dd_total_energy, 3)) + ',' + str(round(dd_shell_energy, 3)) + ',' + \
-                str(round(dd_substrate_energy, 3)) + ',' + str(round(dd_residue_energy, 3)) + ',' + \
+        pf.write(str(round(d_total_energy, 3)) + ',' + str(round(d_shell_energy, 3)) + ',' + \
+                str(round(d_substrate_energy, 3)) + ',' + str(round(d_residue_energy, 3)) + ',' + \
                 str(round(delta_interaction_energy, 3)) + ',' + str(round(delta_constraint_energy, 3)))
 
 if __name__ == '__main__':
@@ -283,15 +245,14 @@ if __name__ == '__main__':
     pose, xtal_pose = create_pose(args)
     fold_tree = set_fold_tree(args.fold_tree)
     pose.fold_tree(fold_tree)
-    xtal_pose.fold_tree(fold_tree)
-    apply_symmetry(pose)
-    apply_symmetry(xtal_pose)
+    apply_symmetry(pose, args.symmetry)
+    apply_symmetry(xtal_pose, args.symmetry)
     add_coord_cst = add_coordinate_constraint(xtal_pose)
     apply_constraints(args, pose, score_function)
     prefix = basename(args.pdb).replace('.pdb', '').replace('.gz', '')
-    point_mutated_pose, ref_pose = mutagenesis(score_function, args.site, args.aa, pose, xtal_pose, \
+    point_mutated_pose = mutagenesis(score_function, args.site, args.aa, pose, xtal_pose, \
             add_coord_cst, prefix)
-    dd_total_energy, dd_shell_energy, dd_substrate_energy, dd_residue_energy, delta_interaction_energy, \
-            delta_constraint_energy = calculate_ddG(score_function, point_mutated_pose, ref_pose, args.site)
-    write_csv(args.site, args.aa, dd_total_energy, dd_shell_energy, dd_substrate_energy, dd_residue_energy, \
+    d_total_energy, d_shell_energy, d_substrate_energy, d_residue_energy, delta_interaction_energy, \
+            delta_constraint_energy = calculate_delta_G(score_function, point_mutated_pose, args.site)
+    write_csv(args.site, args.aa, d_total_energy, d_shell_energy, d_substrate_energy, d_residue_energy, \
             delta_interaction_energy, delta_constraint_energy)
