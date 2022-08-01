@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument('-xtal', type=str, required=True)
     parser.add_argument('-params', type=str, nargs='*')
     parser.add_argument('-cst', type=str)
-    parser.add_argument('-enzdescst', type=str, required=True)
+    parser.add_argument('-enzdescst', type=str)
     parser.add_argument('-site', type=int, required=True, help='pdb numbering of the mutated site')
     parser.add_argument('-aa', type=str, required=True)
     parser.add_argument('-symm', '--symmetry', type=str)
@@ -76,12 +76,12 @@ def create_pose(args):
     xtal_pose = pose_from_pdb(args.xtal)
     return pose, xtal_pose
 
-def set_fold_tree(pose, is_monomer=None):
+def set_fold_tree(pose, is_symmetric):
     protease_vector = ChainSelector('A').apply(pose)
     protease_length = protease_vector.count(True)
-    monomer_length = len(protease_vector)
-    if not is_monomer:
-        monomer_length = monomer_length / 2
+    monomer_length = protease_vector.u()
+    if not is_symmetric:
+        monomer_length = int(monomer_length / 2)
     not_protease_length = monomer_length - protease_length
     chain_B_length = ChainSelector('B').apply(pose).count(True)
     if chain_B_length != not_protease_length:
@@ -97,9 +97,12 @@ def set_fold_tree(pose, is_monomer=None):
         if substrate_length > 1: # and is_protein
             fold_tree.add_edge(protease_length + 1, protease_length + substrate_length, -1)
     for edge, wat in enumerate(range(protease_length + substrate_length + 1, monomer_length + 1)):
-        fold_tree.add_edge(1, wat, edge + 2)
+        if substrate_length > 0:
+            fold_tree.add_edge(1, wat, edge + 2)
+        else:
+            fold_tree.add_edge(1, wat, edge + 1)
         jumps += 1
-    if not is_monomer:
+    if not is_symmetric:
         current_edge = edge + 3
         fold_tree.add_edge(1, monomer_length + 1, current_edge)
         jumps += 1
@@ -111,16 +114,14 @@ def set_fold_tree(pose, is_monomer=None):
             if substrate_length > 1: # and is_protein
                 fold_tree.add_edge(monomer_length + protease_length + 1, monomer_length + protease_length + substrate_length, -1)
         for edge2, wat in enumerate(range(monomer_length + protease_length + substrate_length + 1, 2 * monomer_length + 1)):
-            fold_tree.add_edge(monomer_length + 1, wat, current_edge + edge2 + 1)
+            if substrate_length > 0:
+                fold_tree.add_edge(monomer_length + 1, wat, current_edge + edge2 + 1)
+            else:
+                fold_tree.add_edge(monomer_length + 1, wat, current_edge + edge2)
             jumps += 1
     pose.fold_tree(fold_tree)
     protease_selector = ResidueIndexSelector('1-' + str(protease_length) + ',' + str(monomer_length + 1) + '-' + str(monomer_length + protease_length))
     return protease_selector, jumps, substrate_length, monomer_length
-
-def apply_symmetry(pose, symmetry):
-    symmetry_mover = SetupForSymmetryMover(symmetry)
-    symmetry_mover.set_keep_pdb_info_labels(True)
-    symmetry_mover.apply(pose)
 
 def apply_enzyme_design_constraints(pose, enzdescst):
     enzdescst = AddOrRemoveMatchCsts()
@@ -184,25 +185,28 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     pose_idx_A187D = pose.pdb_info().pdb2pose(pro_chain, 187)
     atom_A187D_OD2 = AtomID(pose.residue(pose_idx_A187D).atom_index("OD2"), pose_idx_A187D)
     # Define chain B atoms, if substrate exists and is not a ligand
-    pose_idx_B505 = pose.pdb_info().pdb2pose(subs_chain, 505)
-    if substrate_length > 0 and pose_idx_B505 != 0:
-        atom_B505_N = AtomID(pose.residue(pose_idx_B505).atom_index("N"), pose_idx_B505)
-        atom_B505_CA = AtomID(pose.residue(pose_idx_B505).atom_index("CA"), pose_idx_B505)
-        atom_B505_C = AtomID(pose.residue(pose_idx_B505).atom_index("C"), pose_idx_B505)
-        atom_B505_O = AtomID(pose.residue(pose_idx_B505).atom_index("O"), pose_idx_B505)
-    pose_idx_B507 = pose.pdb_info().pdb2pose(subs_chain, 507)
-    if substrate_length > 0 and pose_idx_B507 != 0:
-        atom_B507_N = AtomID(pose.residue(pose_idx_B507).atom_index("N"), pose_idx_B507)
-        atom_B507_CA = AtomID(pose.residue(pose_idx_B507).atom_index("CA"), pose_idx_B507)
-        atom_B507_C = AtomID(pose.residue(pose_idx_B507).atom_index("C"), pose_idx_B507)
-        atom_B507_O = AtomID(pose.residue(pose_idx_B507).atom_index("O"), pose_idx_B507)
-        atom_B507Q_NE2 = AtomID(pose.residue(pose_idx_B507).atom_index("NE2"), pose_idx_B507)
-    pose_idx_B509 = pose.pdb_info().pdb2pose(subs_chain, 509)
-    if substrate_length > 0 and pose_idx_B509 != 0:
-        atom_B509_N = AtomID(pose.residue(pose_idx_B509).atom_index("N"), pose_idx_B509)
-        atom_B509_CA = AtomID(pose.residue(pose_idx_B509).atom_index("CA"), pose_idx_B509)
-        atom_B509_C = AtomID(pose.residue(pose_idx_B509).atom_index("C"), pose_idx_B509)
-        atom_B509_O = AtomID(pose.residue(pose_idx_B509).atom_index("O"), pose_idx_B509)
+    if substrate_length > 0:
+        pose_idx_B505 = pose.pdb_info().pdb2pose(subs_chain, 505)
+        if pose_idx_B505 != 0:
+            atom_B505_N = AtomID(pose.residue(pose_idx_B505).atom_index("N"), pose_idx_B505)
+            atom_B505_CA = AtomID(pose.residue(pose_idx_B505).atom_index("CA"), pose_idx_B505)
+            atom_B505_C = AtomID(pose.residue(pose_idx_B505).atom_index("C"), pose_idx_B505)
+            atom_B505_O = AtomID(pose.residue(pose_idx_B505).atom_index("O"), pose_idx_B505)
+    if substrate_length > 0:
+        pose_idx_B507 = pose.pdb_info().pdb2pose(subs_chain, 507)
+        if pose_idx_B507 != 0:
+            atom_B507_N = AtomID(pose.residue(pose_idx_B507).atom_index("N"), pose_idx_B507)
+            atom_B507_CA = AtomID(pose.residue(pose_idx_B507).atom_index("CA"), pose_idx_B507)
+            atom_B507_C = AtomID(pose.residue(pose_idx_B507).atom_index("C"), pose_idx_B507)
+            atom_B507_O = AtomID(pose.residue(pose_idx_B507).atom_index("O"), pose_idx_B507)
+            atom_B507Q_NE2 = AtomID(pose.residue(pose_idx_B507).atom_index("NE2"), pose_idx_B507)
+    if substrate_length > 0:
+        pose_idx_B509 = pose.pdb_info().pdb2pose(subs_chain, 509)
+        if pose_idx_B509 != 0:
+            atom_B509_N = AtomID(pose.residue(pose_idx_B509).atom_index("N"), pose_idx_B509)
+            atom_B509_CA = AtomID(pose.residue(pose_idx_B509).atom_index("CA"), pose_idx_B509)
+            atom_B509_C = AtomID(pose.residue(pose_idx_B509).atom_index("C"), pose_idx_B509)
+            atom_B509_O = AtomID(pose.residue(pose_idx_B509).atom_index("O"), pose_idx_B509)
     # Define water oxygen atoms
     pose_idx_C601WAT = pose.pdb_info().pdb2pose(wat_chain, 601)
     if pose_idx_C601WAT != 0:
@@ -464,13 +468,14 @@ def mutagenesis(score_function, cartesian, site, monomer_length, aa, pose, xtal_
         point_mutated_pose.dump_pdb(prefix + '_' + str(site) + aa + '.pdb')
     return point_mutated_pose
 
-def calculate_delta_G(score_function, point_mutated_pose, protease_selector, site, monomer_length):
+def calculate_delta_G(score_function, point_mutated_pose, site, aa, protease_selector, monomer_length):
     # calculate delta total energy
     d_total_energy = calculate_energy(score_function, point_mutated_pose) \
             - calculate_energy(score_function, point_mutated_pose, score_type='coordinate_constraint')
     # calculate delta shell energy
     shell_res_pose_indexes = list()
-    for shell_res in [168,191,50,189,190,165,167,173,192,142,166,170,44,49,52,54,164,181,40,187,140,144,163,172,25,27,42]:
+    shell_res_list = [168,191,50,189,190,165,167,173,192,142,166,170,44,49,52,54,164,181,40,187,140,144,163,172,25,27,42]
+    for shell_res in shell_res_list:
         shell_res_pose_idx = pose.pdb_info().pdb2pose('A', shell_res)
         shell_res_pose_indexes.append(str(shell_res_pose_idx))
         shell_res_pose_indexes.append(str(monomer_length + shell_res_pose_idx))
@@ -487,21 +492,73 @@ def calculate_delta_G(score_function, point_mutated_pose, protease_selector, sit
     d_residue_energy = calculate_energy(score_function, point_mutated_pose, selector=mutation_selector) \
             - calculate_energy(score_function, point_mutated_pose, selector=mutation_selector, score_type='coordinate_constraint')
     # calculate delta interaction energy
-    substrate_selector = NotResidueSelector(protease_selector)
     delta_interaction_energy = calculate_interaction_energy(score_function, point_mutated_pose, protease_selector, substrate_selector)
     # calculate delta constraint energy
-    delta_constraint_energy = calculate_energy(score_function, point_mutated_pose, score_type='atom_pair_constraint') \
-            + calculate_energy(score_function, point_mutated_pose, score_type='angle_constraint') \
-            + calculate_energy(score_function, point_mutated_pose, score_type='dihedral_constraint')
-    return d_total_energy, d_shell_energy, d_substrate_energy, d_residue_energy, \
-            delta_interaction_energy, delta_constraint_energy
-
-def write_dat(site, aa, d_total_energy, d_shell_energy, d_substrate_energy, \
-        d_residue_energy, delta_interaction_energy, delta_constraint_energy):
+    delta_constraint_energy = calculate_energy(score_function, point_mutated_pose, score_type='atom_pair_constraint') + \
+            calculate_energy(score_function, point_mutated_pose, score_type='angle_constraint') + \
+            calculate_energy(score_function, point_mutated_pose, score_type='dihedral_constraint')
     with open(str(site) + '_' + aa + '.dat', 'w') as pf:
         pf.write(str(round(d_total_energy, 3)) + ',' + str(round(d_shell_energy, 3)) + ',' + \
                 str(round(d_substrate_energy, 3)) + ',' + str(round(d_residue_energy, 3)) + ',' + \
-                str(round(delta_interaction_energy, 3)) + ',' + str(round(delta_constraint_energy, 3)))
+                str(round(delta_interaction_energy, 3)) + ',' + str(round(delta_constraint_energy, 3)) + '\n')
+
+def calculate_delta_G_2(score_function, point_mutated_pose, site, aa, protease_selector, monomer_length):
+    # calculate delta total energy
+    first_monomer_selector = ResidueIndexSelector("1-" + str(monomer_length))
+    second_monomer_selector = ResidueIndexSelector(str(monomer_length + 1) + "-" + str(2 * monomer_length))
+    d_total_energy_1 = calculate_energy(score_function, point_mutated_pose, selector=first_monomer_selector) \
+            - calculate_energy(score_function, point_mutated_pose, selector=first_monomer_selector, score_type='coordinate_constraint')
+    d_total_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector) \
+            - calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='coordinate_constraint')
+    # calculate delta shell energy
+    shell_res_pose_indexes_1 = list()
+    shell_res_pose_indexes_2 = list()
+    shell_res_list = [168,191,50,189,190,165,167,173,192,142,166,170,44,49,52,54,164,181,40,187,140,144,163,172,25,27,42]
+    for shell_res in shell_res_list:
+        shell_res_pose_idx = pose.pdb_info().pdb2pose('A', shell_res)
+        shell_res_pose_indexes_1.append(str(shell_res_pose_idx))
+        shell_res_pose_indexes_2.append(str(monomer_length + shell_res_pose_idx))
+    shell_selector_1 = ResidueIndexSelector(','.join(shell_res_pose_indexes_1))
+    shell_selector_2 = ResidueIndexSelector(','.join(shell_res_pose_indexes_2))
+    d_shell_energy_1 = calculate_energy(score_function, point_mutated_pose, selector=shell_selector_1) \
+            - calculate_energy(score_function, point_mutated_pose, selector=shell_selector_1, score_type='coordinate_constraint')
+    d_shell_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=shell_selector_2) \
+            - calculate_energy(score_function, point_mutated_pose, selector=shell_selector_2, score_type='coordinate_constraint')
+    # calculate delta substrate energy
+    substrate_selector_1 = AndResidueSelector(NotResidueSelector(protease_selector), first_monomer_selector)
+    substrate_selector_2 = AndResidueSelector(NotResidueSelector(protease_selector), second_monomer_selector)
+    d_substrate_energy_1 = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_1) \
+            - calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_1, score_type='coordinate_constraint')
+    d_substrate_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_2) \
+            - calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_2, score_type='coordinate_constraint')
+    # calculate delta residue energy
+    site_pose_idx = pose.pdb_info().pdb2pose('A', site)
+    mutation_selector_1 = ResidueIndexSelector(str(site_pose_idx))
+    mutation_selector_2 = ResidueIndexSelector(str(monomer_length + site_pose_idx))
+    d_residue_energy_1 = calculate_energy(score_function, point_mutated_pose, selector=mutation_selector_1) \
+            - calculate_energy(score_function, point_mutated_pose, selector=mutation_selector_1, score_type='coordinate_constraint')
+    d_residue_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=mutation_selector_2) \
+            - calculate_energy(score_function, point_mutated_pose, selector=mutation_selector_2, score_type='coordinate_constraint')
+    # calculate delta interaction energy
+    protease_selector_1 = AndResidueSelector(protease_selector, first_monomer_selector)
+    protease_selector_2 = AndResidueSelector(protease_selector, second_monomer_selector)
+    delta_interaction_energy_1 = calculate_interaction_energy(score_function, point_mutated_pose, protease_selector_1, substrate_selector_1)
+    delta_interaction_energy_2 = calculate_interaction_energy(score_function, point_mutated_pose, protease_selector_2, substrate_selector_2)
+    # calculate delta constraint energy
+    delta_constraint_energy_1 = calculate_energy(score_function, point_mutated_pose, selector=first_monomer_selector, score_type='atom_pair_constraint') \
+            + calculate_energy(score_function, point_mutated_pose, selector=first_monomer_selector, score_type='angle_constraint') \
+            + calculate_energy(score_function, point_mutated_pose, selector=first_monomer_selector, score_type='dihedral_constraint')
+    delta_constraint_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='atom_pair_constraint') \
+            + calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='angle_constraint') \
+            + calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='dihedral_constraint')
+    with open(str(site) + '_' + aa + '.dat', 'w') as pf:
+        pf.write(str(round(d_total_energy_1, 3)) + ',' + str(round(d_shell_energy_1, 3)) + ',' + \
+                str(round(d_substrate_energy_1, 3)) + ',' + str(round(d_residue_energy_1, 3)) + ',' + \
+                str(round(delta_interaction_energy_1, 3)) + ',' + str(round(delta_constraint_energy_1, 3)) + '\n')
+        pf.write(str(round(d_total_energy_2, 3)) + ',' + str(round(d_shell_energy_2, 3)) + ',' + \
+                str(round(d_substrate_energy_2, 3)) + ',' + str(round(d_residue_energy_2, 3)) + ',' + \
+                str(round(delta_interaction_energy_2, 3)) + ',' + str(round(delta_constraint_energy_2, 3)) + '\n')
+
 
 if __name__ == '__main__':
     args = parse_arguments()
@@ -510,8 +567,9 @@ if __name__ == '__main__':
     pose, xtal_pose = create_pose(args)
     protease_selector, jumps, substrate_length, monomer_length = set_fold_tree(pose, args.symmetry)
     if args.symmetry:
-        apply_symmetry(pose, args.symmetry)
-        apply_symmetry(xtal_pose, args.symmetry)
+        symmetry_mover = SetupForSymmetryMover(args.symmetry)
+        symmetry_mover.apply(pose)
+        symmetry_mover.apply(xtal_pose)
         xtal_ref_pdb = args.xtal[:-3] + 'symm.pdb'
         if not isfile(xtal_ref_pdb):
             score_function(xtal_pose)
@@ -521,7 +579,7 @@ if __name__ == '__main__':
     if args.cst:
         add_fa_constraints_from_cmdline(pose, score_function)
     apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site)
-    if args.symmetry:
+    if not args.symmetry:
             apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site)
     if args.enzdescst:
         apply_enzyme_design_constraints(pose, args.enzdescst)
@@ -529,8 +587,7 @@ if __name__ == '__main__':
     prefix = basename(args.pdb).replace('.pdb', '').replace('.gz', '')
     point_mutated_pose = mutagenesis(score_function, args.cartesian, args.site, monomer_length, args.aa, \
             pose, xtal_pose, protease_selector, jumps, args.n_decoy, prefix)
-    d_total_energy, d_shell_energy, d_substrate_energy, d_residue_energy, delta_interaction_energy, \
-            delta_constraint_energy = calculate_delta_G(score_function, point_mutated_pose, \
-                    protease_selector, args.site, monomer_length)
-    write_dat(args.site, args.aa, d_total_energy, d_shell_energy, d_substrate_energy, d_residue_energy, \
-            delta_interaction_energy, delta_constraint_energy)
+    if args.symmetry:
+        calculate_delta_G(score_function, point_mutated_pose, args.site, args.aa, protease_selector, monomer_length)
+    else:
+        calculate_delta_G_2(score_function, point_mutated_pose, args.site, args.aa, protease_selector, monomer_length)
