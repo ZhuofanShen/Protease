@@ -16,9 +16,9 @@ from pyrosetta.rosetta.core.scoring.constraints import add_fa_constraints_from_c
 from pyrosetta.rosetta.core.scoring.func import CircularHarmonicFunc, FlatHarmonicFunc
 from pyrosetta.rosetta.core.scoring.symmetry import SymmetricScoreFunction
 from pyrosetta.rosetta.core.select.residue_selector import \
-    AndResidueSelector, ChainSelector, ResidueIndexSelector, \
-    NotResidueSelector, OrResidueSelector, \
-    InterGroupInterfaceByVectorSelector, NeighborhoodResidueSelector
+    AndResidueSelector, NotResidueSelector, OrResidueSelector, \
+    InterGroupInterfaceByVectorSelector, \
+    ChainSelector, ResidueIndexSelector, ResidueNameSelector
 from pyrosetta.rosetta.core.simple_metrics.metrics import \
     InteractionEnergyMetric, RMSDMetric, TotalEnergyMetric
 from pyrosetta.rosetta.protocols.constraint_generator import \
@@ -335,12 +335,14 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
             pose.add_constraint(AngleConstraint(atom_A26T_CA, atom_A26T_N, atom_B509_O, circular_harmonic_fc))
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + '/509/O','xtal//' + subs_chain + '/509/C'), 0.2)
             pose.add_constraint(AngleConstraint(atom_A26T_N, atom_B509_O, atom_B509_C, circular_harmonic_fc))
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + '/509/N'), 0.15, 0.3)
-        pose.add_constraint(AtomPairConstraint(atom_A26T_O, atom_B509_N, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/C','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + '/509/N'), 0.2)
-        pose.add_constraint(AngleConstraint(atom_A26T_C, atom_A26T_O, atom_B509_N, circular_harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + '/509/N','xtal//' + subs_chain + '/509/CA'), 0.2)
-        pose.add_constraint(AngleConstraint(atom_A26T_O, atom_B509_N, atom_B509_CA, circular_harmonic_fc))
+        dst = cmd.distance('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + '/509/N')
+        if dst < 4: # nsp6-nsp7_7TBT does not have this H-bonding
+            harmonic_fc = FlatHarmonicFunc(dst, 0.15, 0.3)
+            pose.add_constraint(AtomPairConstraint(atom_A26T_O, atom_B509_N, harmonic_fc))
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/C','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + '/509/N'), 0.2)
+            pose.add_constraint(AngleConstraint(atom_A26T_C, atom_A26T_O, atom_B509_N, circular_harmonic_fc))
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + '/509/N','xtal//' + subs_chain + '/509/CA'), 0.2)
+            pose.add_constraint(AngleConstraint(atom_A26T_O, atom_B509_N, atom_B509_CA, circular_harmonic_fc))
 
 def add_coordinate_constraint(pose, xtal_pose, monomer_length, no_coordinate_csts=None):
     coord_cst_gen = CoordinateConstraintGenerator()
@@ -362,11 +364,10 @@ def add_coordinate_constraint(pose, xtal_pose, monomer_length, no_coordinate_cst
     add_coord_cst.apply(pose)
 
 def create_residue_selector(mutation_selector, protease_selector):
-    substrate_selector = NotResidueSelector(protease_selector)
     interface_selector = InterGroupInterfaceByVectorSelector()
     interface_selector.group1_selector(mutation_selector)
     interface_selector.group2_selector(NotResidueSelector(mutation_selector))
-    movable_selector = OrResidueSelector(interface_selector, substrate_selector)
+    movable_selector = OrResidueSelector(interface_selector, NotResidueSelector(protease_selector))
     repacking_selector = AndResidueSelector(movable_selector, NotResidueSelector(mutation_selector))
     static_selector = NotResidueSelector(movable_selector)
 
@@ -483,7 +484,7 @@ def calculate_delta_G(score_function, point_mutated_pose, site, aa, protease_sel
     d_shell_energy = calculate_energy(score_function, point_mutated_pose, selector=shell_selector) \
             - calculate_energy(score_function, point_mutated_pose, selector=shell_selector, score_type='coordinate_constraint')
     # calculate delta substrate energy
-    substrate_selector = NotResidueSelector(protease_selector)
+    substrate_selector = NotResidueSelector(OrResidueSelector(protease_selector, ResidueNameSelector('TP3')))
     d_substrate_energy = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector) \
             - calculate_energy(score_function, point_mutated_pose, selector=substrate_selector, score_type='coordinate_constraint')
     # calculate delta residue energy
@@ -525,8 +526,9 @@ def calculate_delta_G_2(score_function, point_mutated_pose, site, aa, protease_s
     d_shell_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=shell_selector_2) \
             - calculate_energy(score_function, point_mutated_pose, selector=shell_selector_2, score_type='coordinate_constraint')
     # calculate delta substrate energy
-    substrate_selector_1 = AndResidueSelector(NotResidueSelector(protease_selector), first_monomer_selector)
-    substrate_selector_2 = AndResidueSelector(NotResidueSelector(protease_selector), second_monomer_selector)
+    substrate_selector = NotResidueSelector(OrResidueSelector(protease_selector, ResidueNameSelector('TP3')))
+    substrate_selector_1 = AndResidueSelector(substrate_selector, first_monomer_selector)
+    substrate_selector_2 = AndResidueSelector(substrate_selector, second_monomer_selector)
     d_substrate_energy_1 = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_1) \
             - calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_1, score_type='coordinate_constraint')
     d_substrate_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=substrate_selector_2) \
@@ -578,9 +580,10 @@ if __name__ == '__main__':
         xtal_ref_pdb = args.xtal
     if args.cst:
         add_fa_constraints_from_cmdline(pose, score_function)
-    apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site)
-    if not args.symmetry:
-            apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site)
+    else:
+        apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site)
+        if not args.symmetry:
+                apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site)
     if args.enzdescst:
         apply_enzyme_design_constraints(pose, args.enzdescst)
     add_coordinate_constraint(pose, xtal_pose, monomer_length, args.no_coordinate_csts)
