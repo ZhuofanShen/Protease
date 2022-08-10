@@ -14,7 +14,7 @@ from pyrosetta.rosetta.core.pack import *
 from pyrosetta.rosetta.core.scoring import ScoreType
 from pyrosetta.rosetta.core.scoring.constraints import add_fa_constraints_from_cmdline, \
     AmbiguousConstraint, AngleConstraint, AtomPairConstraint
-from pyrosetta.rosetta.core.scoring.func import CircularHarmonicFunc, FlatHarmonicFunc
+from pyrosetta.rosetta.core.scoring.func import CircularHarmonicFunc, FlatHarmonicFunc, HarmonicFunc
 from pyrosetta.rosetta.core.scoring.symmetry import SymmetricScoreFunction
 from pyrosetta.rosetta.core.select.residue_selector import \
     AndResidueSelector, NotResidueSelector, OrResidueSelector, \
@@ -35,6 +35,7 @@ def parse_arguments():
     parser.add_argument('pdb', type=str)
     parser.add_argument('-xtal', type=str, required=True)
     parser.add_argument('-params', type=str, nargs='*')
+    parser.add_argument('-covalent', "--covalent", action="store_true")
     parser.add_argument('-cst', type=str)
     parser.add_argument('-enzdescst', type=str)
     parser.add_argument('-site', type=int, required=True, help='pdb numbering of the mutated site')
@@ -129,7 +130,7 @@ def apply_enzyme_design_constraints(pose, enzdescst):
     enzdescst.set_cst_action(ADD_NEW)
     enzdescst.apply(pose)
 
-def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, site):
+def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, site, covalent):
     if is_first_monomer:
         pro_chain = 'A'
         if substrate_length > 0:
@@ -180,6 +181,7 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     pose_idx_A145C = pose.pdb_info().pdb2pose(pro_chain, 145)
     atom_A145C_N = AtomID(pose.residue(pose_idx_A145C).atom_index("N"), pose_idx_A145C)
     atom_A145C_CA = AtomID(pose.residue(pose_idx_A145C).atom_index("CA"), pose_idx_A145C)
+    atom_A145C_SG = AtomID(pose.residue(pose_idx_A145C).atom_index("SG"), pose_idx_A145C)
     pose_idx_A164H = pose.pdb_info().pdb2pose(pro_chain, 164)
     atom_A164H_O = AtomID(pose.residue(pose_idx_A164H).atom_index("O"), pose_idx_A164H)    
     atom_A164H_ND1 = AtomID(pose.residue(pose_idx_A164H).atom_index("ND1"), pose_idx_A164H)
@@ -386,9 +388,13 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         if atom_B505_CA:
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str,'xtal//' + subs_chain + atom_B505_CA_str), 0.2)
             pose.add_constraint(AngleConstraint(atom_A166E_O, atom_B505_N, atom_B505_CA, circular_harmonic_fc))
+    # Add covalent bond constraints between A145C and B507
+    if covalent and atom_B507_C:
+        harmonic_fc = HarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/145/SG','xtal//' + subs_chain + atom_B507_C_str), 0.1)
+        pose.add_constraint(AtomPairConstraint(atom_A145C_SG, atom_B507_C, harmonic_fc))
     # Add H-bonding constraints between A164H and B507
     if atom_B507_N:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_C_str), 0.15, 0.3)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_N_str), 0.15, 0.3)
         pose.add_constraint(AtomPairConstraint(atom_A164H_O, atom_B507_N, harmonic_fc))
         if atom_B507_CA:
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_N_str,'xtal//' + subs_chain + atom_B507_CA_str), 0.2)
@@ -596,10 +602,11 @@ def calculate_delta_G(score_function, point_mutated_pose, site, aa, protease_sel
     delta_constraint_energy = calculate_energy(score_function, point_mutated_pose, score_type='atom_pair_constraint') + \
             calculate_energy(score_function, point_mutated_pose, score_type='angle_constraint') + \
             calculate_energy(score_function, point_mutated_pose, score_type='dihedral_constraint')
-    with open(str(site) + '_' + aa + '.dat', 'w') as pf:
-        pf.write(str(round(d_total_energy, 3)) + ',' + str(round(d_shell_energy, 3)) + ',' + \
-                str(round(d_substrate_energy, 3)) + ',' + str(round(d_residue_energy, 3)) + ',' + \
-                str(round(delta_interaction_energy, 3)) + ',' + str(round(delta_constraint_energy, 3)) + '\n')
+    if not isfile(str(site) + '_' + aa + '.dat'):
+        with open(str(site) + '_' + aa + '.dat', 'w') as pf:
+            pf.write(str(round(d_total_energy, 3)) + ',' + str(round(d_shell_energy, 3)) + ',' + \
+                    str(round(d_substrate_energy, 3)) + ',' + str(round(d_residue_energy, 3)) + ',' + \
+                    str(round(delta_interaction_energy, 3)) + ',' + str(round(delta_constraint_energy, 3)) + '\n')
 
 def calculate_delta_G_2(score_function, point_mutated_pose, site, aa, protease_selector, monomer_length):
     # calculate delta total energy
@@ -651,13 +658,14 @@ def calculate_delta_G_2(score_function, point_mutated_pose, site, aa, protease_s
     delta_constraint_energy_2 = calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='atom_pair_constraint') \
             + calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='angle_constraint') \
             + calculate_energy(score_function, point_mutated_pose, selector=second_monomer_selector, score_type='dihedral_constraint')
-    with open(str(site) + '_' + aa + '.dat', 'w') as pf:
-        pf.write(str(round(d_total_energy_1, 3)) + ',' + str(round(d_shell_energy_1, 3)) + ',' + \
-                str(round(d_substrate_energy_1, 3)) + ',' + str(round(d_residue_energy_1, 3)) + ',' + \
-                str(round(delta_interaction_energy_1, 3)) + ',' + str(round(delta_constraint_energy_1, 3)) + '\n')
-        pf.write(str(round(d_total_energy_2, 3)) + ',' + str(round(d_shell_energy_2, 3)) + ',' + \
-                str(round(d_substrate_energy_2, 3)) + ',' + str(round(d_residue_energy_2, 3)) + ',' + \
-                str(round(delta_interaction_energy_2, 3)) + ',' + str(round(delta_constraint_energy_2, 3)) + '\n')
+    if not isfile(str(site) + '_' + aa + '.dat'):
+        with open(str(site) + '_' + aa + '.dat', 'w') as pf:
+            pf.write(str(round(d_total_energy_1, 3)) + ',' + str(round(d_shell_energy_1, 3)) + ',' + \
+                    str(round(d_substrate_energy_1, 3)) + ',' + str(round(d_residue_energy_1, 3)) + ',' + \
+                    str(round(delta_interaction_energy_1, 3)) + ',' + str(round(delta_constraint_energy_1, 3)) + '\n')
+            pf.write(str(round(d_total_energy_2, 3)) + ',' + str(round(d_shell_energy_2, 3)) + ',' + \
+                    str(round(d_substrate_energy_2, 3)) + ',' + str(round(d_residue_energy_2, 3)) + ',' + \
+                    str(round(delta_interaction_energy_2, 3)) + ',' + str(round(delta_constraint_energy_2, 3)) + '\n')
 
 
 if __name__ == '__main__':
@@ -679,9 +687,9 @@ if __name__ == '__main__':
     if args.cst:
         add_fa_constraints_from_cmdline(pose, score_function)
     else:
-        apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site)
+        apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site, args.covalent)
         if not args.symmetry:
-                apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site)
+                apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site, args.covalent)
     if args.enzdescst:
         apply_enzyme_design_constraints(pose, args.enzdescst)
     add_coordinate_constraint(pose, xtal_pose, monomer_length, args.no_coordinate_csts)
