@@ -182,8 +182,11 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     atom_A145C_N = AtomID(pose.residue(pose_idx_A145C).atom_index("N"), pose_idx_A145C)
     atom_A145C_CA = AtomID(pose.residue(pose_idx_A145C).atom_index("CA"), pose_idx_A145C)
     atom_A145C_SG = AtomID(pose.residue(pose_idx_A145C).atom_index("SG"), pose_idx_A145C)
+    pose_idx_A163H = pose.pdb_info().pdb2pose(pro_chain, 163)
+    atom_A163H_NE2 = AtomID(pose.residue(pose_idx_A163H).atom_index("NE2"), pose_idx_A163H)
+    atom_A163H_CD2 = AtomID(pose.residue(pose_idx_A163H).atom_index("CD2"), pose_idx_A163H)
     pose_idx_A164H = pose.pdb_info().pdb2pose(pro_chain, 164)
-    atom_A164H_O = AtomID(pose.residue(pose_idx_A164H).atom_index("O"), pose_idx_A164H)    
+    atom_A164H_O = AtomID(pose.residue(pose_idx_A164H).atom_index("O"), pose_idx_A164H)
     atom_A164H_ND1 = AtomID(pose.residue(pose_idx_A164H).atom_index("ND1"), pose_idx_A164H)
     pose_idx_A166E = pose.pdb_info().pdb2pose(pro_chain, 166)
     atom_A166E_N = AtomID(pose.residue(pose_idx_A166E).atom_index("N"), pose_idx_A166E)
@@ -239,6 +242,8 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         atom_B507_O_str = '/507/O'
         atom_B507_CD = AtomID(pose.residue(pose_idx_B507).atom_index("CD"), pose_idx_B507)
         atom_B507_CD_str = '/507/CD'
+        atom_B507_OE1 = AtomID(pose.residue(pose_idx_B507).atom_index("OE1"), pose_idx_B507)
+        atom_B507_OE1_str = '/507/OE1'
         atom_B507_NE2 = AtomID(pose.residue(pose_idx_B507).atom_index("NE2"), pose_idx_B507)
         atom_B507_NE2_str = '/507/NE2'
     elif pose_idx_B401 != 0:
@@ -257,6 +262,9 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         with contextlib.suppress(RuntimeError):
             atom_B507_CD = AtomID(pose.residue(pose_idx_B401).atom_index("CDB7"), pose_idx_B401)
             atom_B507_CD_str = '/401/CDB7'
+        with contextlib.suppress(RuntimeError):
+            atom_B507_OE1 = AtomID(pose.residue(pose_idx_B401).atom_index("OEB7"), pose_idx_B401)
+            atom_B507_OE1_str = '/401/OEB7'
         with contextlib.suppress(RuntimeError):
             atom_B507_NE2 = AtomID(pose.residue(pose_idx_B401).atom_index("NEB7"), pose_idx_B401)
             atom_B507_NE2_str = '/401/NEB7'
@@ -417,7 +425,16 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         if atom_B507_C:
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str,'xtal//' + subs_chain + atom_B507_C_str), 0.2)
             pose.add_constraint(AngleConstraint(atom_A145C_N, atom_B507_O, atom_B507_C, circular_harmonic_fc))
-    # Add H-bonding constraints between A140F and B507
+    # Add H-bonding constraints between A163H and B507 sidechain
+    if site != 163 and atom_B507_OE1:
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str), 0.15, 0.3)
+        pose.add_constraint(AtomPairConstraint(atom_A163H_NE2, atom_B507_OE1, harmonic_fc))
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/163/CD2','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str), 0.2)
+        pose.add_constraint(AngleConstraint(atom_A163H_CD2, atom_A163H_NE2, atom_B507_OE1, circular_harmonic_fc))
+        if atom_B507_CD:
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.2)
+            pose.add_constraint(AngleConstraint(atom_A163H_NE2, atom_B507_OE1, atom_B507_CD, circular_harmonic_fc))
+    # Add H-bonding constraints between A140F and B507 sidechain
     if atom_B507_NE2:
         harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.15, 0.3)
         pose.add_constraint(AtomPairConstraint(atom_A140F_O, atom_B507_NE2, harmonic_fc))
