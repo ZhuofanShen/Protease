@@ -315,7 +315,6 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     if pose_idx_C605WAT != 0:
         atom_C605WAT_O = AtomID(pose.residue(pose_idx_C605WAT).atom_index("O"), pose_idx_C605WAT)
         atom_F605WAT_O = AtomID(pose.residue(pose_idx_F605WAT).atom_index("O"), pose_idx_F605WAT)
-    
     # Load xtal symm pdb
     cmd.load(xtal_ref_pdb, 'xtal')
     # Add C601WAT constraints
@@ -466,22 +465,41 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
                 pose.add_constraint(AngleConstraint(atom_A26T_O, atom_B509_N, atom_B509_CA, circular_harmonic_fc))
 
 def add_coordinate_constraint(pose, xtal_pose, monomer_length, no_coordinate_csts=None):
-    coord_cst_gen = CoordinateConstraintGenerator()
-    coord_cst_gen.set_reference_pose(xtal_pose)
+    # Create ligand_cst_gen
+    no_bb_cst_res_pose_indexes = list()
+    pose_idx_B401 = pose.pdb_info().pdb2pose('B', 401)
+    if pose_idx_B401 != 0:
+        ligand_cst_gen = CoordinateConstraintGenerator()
+        ligand_cst_gen.set_sidechain(True)
+        ligand_cst_gen.set_reference_pose(xtal_pose)
+        ligand_cst_gen.set_residue_selector(ResidueIndexSelector(str(pose_idx_B401) + ',' + str(monomer_length + pose_idx_B401)))
+        no_bb_cst_res_pose_indexes.append(str(pose_idx_B401))
+        no_bb_cst_res_pose_indexes.append(str(monomer_length + pose_idx_B401))
+    else:
+        ligand_cst_gen = None
+    # Create bb_cst_gen
+    bb_cst_gen = CoordinateConstraintGenerator()
+    bb_cst_gen.set_reference_pose(xtal_pose)
+    # Cancel coordinate constraints on designated residues
     if no_coordinate_csts:
-        no_coord_cst_res_pose_indexes = list()
         for no_coord_cst_res in no_coordinate_csts:
             if no_coord_cst_res < 400:
                 no_coord_cst_res_pose_idx = pose.pdb_info().pdb2pose('A', no_coord_cst_res)
-                no_coord_cst_res_pose_indexes.append(str(no_coord_cst_res_pose_idx))
-                no_coord_cst_res_pose_indexes.append(str(monomer_length + no_coord_cst_res_pose_idx))
-            elif no_coord_cst_res > 400 and no_coord_cst_res < 600:
+                no_bb_cst_res_pose_indexes.append(str(no_coord_cst_res_pose_idx))
+                no_bb_cst_res_pose_indexes.append(str(monomer_length + no_coord_cst_res_pose_idx))
+            elif no_coord_cst_res > 500 and no_coord_cst_res < 600:
                 no_coord_cst_res_pose_idx = pose.pdb_info().pdb2pose('B', no_coord_cst_res)
-                no_coord_cst_res_pose_indexes.append(str(no_coord_cst_res_pose_idx))
-                no_coord_cst_res_pose_indexes.append(str(monomer_length + no_coord_cst_res_pose_idx))
-        coord_cst_gen.set_residue_selector(NotResidueSelector(ResidueIndexSelector(','.join(no_coord_cst_res_pose_indexes))))
+                no_bb_cst_res_pose_indexes.append(str(no_coord_cst_res_pose_idx))
+                no_bb_cst_res_pose_indexes.append(str(monomer_length + no_coord_cst_res_pose_idx))
+            elif no_coord_cst_res > 400 and no_coord_cst_res < 500:
+                ligand_cst_gen = None
+    if len(no_bb_cst_res_pose_indexes) > 0:
+        bb_cst_gen.set_residue_selector(NotResidueSelector(ResidueIndexSelector(','.join(no_bb_cst_res_pose_indexes))))
+    # Apply coordinate constraint
     add_coord_cst = AddConstraints()
-    add_coord_cst.add_generator(coord_cst_gen)
+    add_coord_cst.add_generator(bb_cst_gen)
+    if ligand_cst_gen:
+        add_coord_cst.add_generator(ligand_cst_gen)
     add_coord_cst.apply(pose)
 
 def create_residue_selector(mutation_selector, protease_selector):
