@@ -193,6 +193,8 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     atom_A166E_CA = AtomID(pose.residue(pose_idx_A166E).atom_index("CA"), pose_idx_A166E)
     atom_A166E_C = AtomID(pose.residue(pose_idx_A166E).atom_index("C"), pose_idx_A166E)
     atom_A166E_O = AtomID(pose.residue(pose_idx_A166E).atom_index("O"), pose_idx_A166E)
+    atom_A166E_CD = AtomID(pose.residue(pose_idx_A166E).atom_index("CD"), pose_idx_A166E)
+    atom_A166E_OE1 = AtomID(pose.residue(pose_idx_A166E).atom_index("OE1"), pose_idx_A166E)
     pose_idx_A187D = pose.pdb_info().pdb2pose(pro_chain, 187)
     atom_A187D_OD2 = AtomID(pose.residue(pose_idx_A187D).atom_index("OD2"), pose_idx_A187D)
     # Define substrate atoms
@@ -444,6 +446,15 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         if atom_B507_CD:
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.2)
             pose.add_constraint(AngleConstraint(atom_A140F_O, atom_B507_NE2, atom_B507_CD, circular_harmonic_fc))
+    # Add H-bonding constraints between A166E and B507 sidechain
+    if site != 166 and atom_B507_NE2:
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str), 0.15, 0.3)
+        pose.add_constraint(AtomPairConstraint(atom_A166E_OE1, atom_B507_NE2, harmonic_fc))
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/CD','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str), 0.2)
+        pose.add_constraint(AngleConstraint(atom_A166E_CD, atom_A166E_OE1, atom_B507_NE2, circular_harmonic_fc))
+        if atom_B507_CD:
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.2)
+            pose.add_constraint(AngleConstraint(atom_A166E_OE1, atom_B507_NE2, atom_B507_CD, circular_harmonic_fc))
     # Add beta sheet constraints between A26T and B509
     if atom_B509_O:
         dst = cmd.distance('tmp','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + atom_B509_O_str)
