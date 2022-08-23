@@ -71,50 +71,29 @@ def calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_del
         sheet.write(0, 8, 'ddG_interact')
         sheet.write(0, 9, 'ddG_cst')
         sheet.write(1, 0, 'apo')
-        # Calculate apo protease ddG for each amino acid type
-        apo_delta_G_data_file = 'apo_6YB7/' + site + '/' + site + '_'+ aa + '.dat'
-        if os.path.isfile(apo_delta_G_data_file):
-            with open(apo_delta_G_data_file) as pf:
-                lines = pf.readlines()
-            if len(lines) == 1:
-                apo_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-                apo_ddG_data = np.subtract(apo_delta_G_data, wt_apo_delta_G_data)
-                sheet.write(1, 1, apo_ddG_data[0])
-                sheet.write(1, 2, 'NA')
-                sheet.write(1, 3, apo_ddG_data[1])
-                sheet.write(1, 4, 'NA')
-                sheet.write(1, 5, apo_ddG_data[2])
-                sheet.write(1, 6, apo_ddG_data[3])
-                sheet.write(1, 7, 'NA')
-                sheet.write(1, 8, apo_ddG_data[4])
-                sheet.write(1, 9, apo_ddG_data[5])
-                row = 2
-            else:
-                apo_delta_G_data_1 = np.array(lines[0][:-1].split(',')).astype(np.float64)
-                apo_ddG_data_1 = np.subtract(apo_delta_G_data_1, wt_apo_delta_G_data[0])
-                sheet.write(1, 1, apo_ddG_data_1[0])
-                sheet.write(1, 2, 'NA')
-                sheet.write(1, 3, apo_ddG_data_1[1])
-                sheet.write(1, 4, 'NA')
-                sheet.write(1, 5, apo_ddG_data_1[2])
-                sheet.write(1, 6, apo_ddG_data_1[3])
-                sheet.write(1, 7, 'NA')
-                sheet.write(1, 8, apo_ddG_data_1[4])
-                sheet.write(1, 9, apo_ddG_data_1[5])
-                apo_delta_G_data_2 = np.array(lines[1][:-1].split(',')).astype(np.float64)
-                apo_ddG_data_2 = np.subtract(apo_delta_G_data_2, wt_apo_delta_G_data[1])
-                sheet.write(2, 1, apo_ddG_data_2[0])
-                sheet.write(2, 2, 'NA')
-                sheet.write(2, 3, apo_ddG_data_2[1])
-                sheet.write(2, 4, 'NA')
-                sheet.write(2, 5, apo_ddG_data_2[2])
-                sheet.write(2, 6, apo_ddG_data_2[3])
-                sheet.write(2, 7, 'NA')
-                sheet.write(2, 8, apo_ddG_data_2[4])
-                sheet.write(2, 9, apo_ddG_data_2[5])
-                row = 3
-        else:
-            row = 1
+        # Calculate additional apo protease ddG for each amino acid type
+        ddG_fold_data = np.zeros(6)
+        ddG_fold_n = 0
+        for apo in ['apo_6YB7']:
+            apo_delta_G_data_file = apo + '/' + site + '/' + site + '_'+ aa + '.dat'
+            if os.path.isfile(apo_delta_G_data_file):
+                with open(apo_delta_G_data_file) as pf:
+                    lines = pf.readlines()
+                if len(lines) == 1:
+                    apo_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
+                    apo_ddG_data = np.subtract(apo_delta_G_data, wt_apo_delta_G_data)
+                    ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data)
+                    ddG_fold_n += 1
+                else:
+                    apo_delta_G_data_1 = np.array(lines[0][:-1].split(',')).astype(np.float64)
+                    apo_ddG_data_1 = np.subtract(apo_delta_G_data_1, wt_apo_delta_G_data[0])
+                    ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_1)
+                    ddG_fold_n += 1
+                    apo_delta_G_data_2 = np.array(lines[1][:-1].split(',')).astype(np.float64)
+                    apo_ddG_data_2 = np.subtract(apo_delta_G_data_2, wt_apo_delta_G_data[1])
+                    ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_2)
+                    ddG_fold_n += 1
+        row = 2
         # Calculate holo protease ddG for each amino acid type
         for nsp in ['nsp4-nsp5_7T70', 'nsp5-nsp6_7T8M', 'nsp6-nsp7_7MB6', 'nsp7-nsp8_7T8R', \
                 'nsp8-nsp9_7T9Y', 'nsp9-nsp10_7TA4', 'nsp10-nsp11_7TA7', 'nsp12-nsp13_7TB2', \
@@ -146,6 +125,8 @@ def calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_del
                         sheet.write(row, 2, float(ddG_data[0]) - float(apo_ddG_data[0]))
                         sheet.write(row, 4, float(ddG_data[1]) - float(apo_ddG_data[1]))
                         sheet.write(row, 7, float(ddG_data[3]) - float(apo_ddG_data[3]))
+                        ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data)
+                        ddG_fold_n += 1
                     row += 1
                 else:
                     wt_delta_G_data_1, wt_delta_G_data_2 = wt_delta_G_dict.get(nsp)
@@ -166,6 +147,8 @@ def calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_del
                         sheet.write(row, 2, float(ddG_data_1[0]) - float(apo_ddG_data_1[0]))
                         sheet.write(row, 4, float(ddG_data_1[1]) - float(apo_ddG_data_1[1]))
                         sheet.write(row, 7, float(ddG_data_1[3]) - float(apo_ddG_data_1[3]))
+                        ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_1)
+                        ddG_fold_n += 1
                     row += 1
                     sheet.write(row, 0, nsp + '_2')
                     delta_G_data_2 = np.array(lines[1][:-1].split(',')).astype(np.float64)
@@ -182,7 +165,20 @@ def calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_del
                         sheet.write(row, 2, float(ddG_data_2[0]) - float(apo_ddG_data_2[0]))
                         sheet.write(row, 4, float(ddG_data_2[1]) - float(apo_ddG_data_2[1]))
                         sheet.write(row, 7, float(ddG_data_2[3]) - float(apo_ddG_data_2[3]))
+                        ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_2)
+                        ddG_fold_n += 1
                     row += 1
+        if ddG_fold_n > 0:
+            ddG_fold_data = ddG_fold_data / ddG_fold_n
+            sheet.write(1, 1, ddG_fold_data[0])
+            sheet.write(1, 2, 'NA')
+            sheet.write(1, 3, ddG_fold_data[1])
+            sheet.write(1, 4, 'NA')
+            sheet.write(1, 5, ddG_fold_data[2])
+            sheet.write(1, 6, ddG_fold_data[3])
+            sheet.write(1, 7, 'NA')
+            sheet.write(1, 8, ddG_fold_data[4])
+            sheet.write(1, 9, ddG_fold_data[5])
     workbook.save(site + '.xls')
 
 def calculate_inhibitor_ddG(inhibitor, site, native_aa):
