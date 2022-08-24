@@ -11,47 +11,33 @@ def parse_arguments():
     parser.add_argument('-inh', '--inhibitor', type=str)
     return parser.parse_args()
 
-def read_variant_delta_G(site, native_aa):
-    # Read wild type apo protease delta G
-    delta_G_data_file = 'apo_6YB7/' + site + '/' + site + '_'+ native_aa + '.dat'
+def read_delta_G_from_file(delta_G_data_file):
     if os.path.isfile(delta_G_data_file):
         with open(delta_G_data_file) as pf:
             lines = pf.readlines()
         if len(lines) == 1:
-            wt_apo_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
+            delta_G_data = np.array([lines[0][:-1].split(',')]).astype(np.float64) / 2
         else:
-            wt_apo_delta_G_data = (np.array(lines[0][:-1].split(',')).astype(np.float64), \
-                    np.array(lines[1][:-1].split(',')).astype(np.float64))
+            delta_G_data = np.array([lines[0][:-1].split(','), lines[1][:-1].split(',')]).astype(np.float64)
     else:
-        wt_apo_delta_G_data = None
+        delta_G_data = np.zeros((0, 6))
+    return delta_G_data
+
+def read_variant_delta_G(site, native_aa):
     # Read wild type protease-nsp complex delta G and wild type apo protease delta G
     wt_delta_G_dict = dict()
-    wt_apo_delta_G_dict = dict()
     for nsp in ['nsp4-nsp5_7T70', 'nsp5-nsp6_7T8M', 'nsp6-nsp7_7MB6', 'nsp7-nsp8_7T8R', \
             'nsp8-nsp9_7T9Y', 'nsp9-nsp10_7TA4', 'nsp10-nsp11_7TA7', 'nsp12-nsp13_7TB2', \
-            'nsp13-nsp14_7TBT', 'nsp14-nsp15_7TA4', 'nsp15-nsp16_7TC4']:
-        delta_G_data_file = nsp + '/' + site + '/' + site + '_'+ native_aa + '.dat'
-        if os.path.isfile(delta_G_data_file):
-            with open(delta_G_data_file) as pf:
-                lines = pf.readlines()
-            if len(lines) == 1:
-                wt_delta_G_dict[nsp] = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-            else:
-                wt_delta_G_dict[nsp] = (np.array(lines[0][:-1].split(',')).astype(np.float64), \
-                        np.array(lines[1][:-1].split(',')).astype(np.float64))
-        apo_state = 'apo_' + nsp.split('_')[1]
-        apo_delta_G_data_file = apo_state + '/' + site + '/' + site + '_'+ native_aa + '.dat'
-        if os.path.isfile(apo_delta_G_data_file):
-            with open(apo_delta_G_data_file) as pf:
-                lines = pf.readlines()
-            if len(lines) == 1:
-                wt_apo_delta_G_dict[apo_state] = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-            else:
-                wt_apo_delta_G_dict[apo_state] = (np.array(lines[0][:-1].split(',')).astype(np.float64), \
-                        np.array(lines[1][:-1].split(',')).astype(np.float64))
-    return wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_delta_G_dict
+            'nsp13-nsp14_7TBT', 'nsp14-nsp15_7TA4', 'nsp15-nsp16_7TC4', 'apo_6YB7']:
+        wt_delta_G_data = read_delta_G_from_file(nsp + '/' + site + '/' + site + '_'+ native_aa + '.dat')
+        wt_delta_G_dict[nsp] = wt_delta_G_data
+        if not nsp.startswith('apo_'):
+            apo_state = 'apo_' + nsp.split('_')[1]
+            wt_apo_delta_G_data = read_delta_G_from_file(apo_state + '/' + site + '/' + site + '_'+ native_aa + '.dat')
+            wt_delta_G_dict[apo_state] = wt_apo_delta_G_data
+    return wt_delta_G_dict
 
-def calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_delta_G_dict):
+def calculate_variant_ddG(site, wt_delta_G_dict):
     workbook = xlwt.Workbook(encoding="ascii")
     # for each sheet
     for aa in ['A', 'G', 'I', 'L', 'P', 'V', 'F', 'W', 'Y', \
@@ -70,199 +56,87 @@ def calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_del
         sheet.write(0, 7, 'ddG_bind,res')
         sheet.write(0, 8, 'ddG_interact')
         sheet.write(0, 9, 'ddG_cst')
-        sheet.write(1, 0, 'apo')
-        # Calculate additional apo protease ddG for each amino acid type
-        ddG_fold_data = np.zeros(6)
+        # Declare ddG fold data array
+        ddG_fold = np.zeros(6)
         ddG_fold_n = 0
-        for apo in ['apo_6YB7']:
-            apo_delta_G_data_file = apo + '/' + site + '/' + site + '_'+ aa + '.dat'
-            if os.path.isfile(apo_delta_G_data_file):
-                with open(apo_delta_G_data_file) as pf:
-                    lines = pf.readlines()
-                if len(lines) == 1:
-                    apo_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-                    apo_ddG_data = np.subtract(apo_delta_G_data, wt_apo_delta_G_data)
-                    ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data)
-                    ddG_fold_n += 1
-                else:
-                    apo_delta_G_data_1 = np.array(lines[0][:-1].split(',')).astype(np.float64)
-                    apo_ddG_data_1 = np.subtract(apo_delta_G_data_1, wt_apo_delta_G_data[0])
-                    ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_1)
-                    ddG_fold_n += 1
-                    apo_delta_G_data_2 = np.array(lines[1][:-1].split(',')).astype(np.float64)
-                    apo_ddG_data_2 = np.subtract(apo_delta_G_data_2, wt_apo_delta_G_data[1])
-                    ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_2)
-                    ddG_fold_n += 1
         row = 2
-        # Calculate holo protease ddG for each amino acid type
+        # Calculate protease ddG for each amino acid type
         for nsp in ['nsp4-nsp5_7T70', 'nsp5-nsp6_7T8M', 'nsp6-nsp7_7MB6', 'nsp7-nsp8_7T8R', \
                 'nsp8-nsp9_7T9Y', 'nsp9-nsp10_7TA4', 'nsp10-nsp11_7TA7', 'nsp12-nsp13_7TB2', \
-                'nsp13-nsp14_7TBT', 'nsp14-nsp15_7TA4', 'nsp15-nsp16_7TC4']:
-            delta_G_data_file = nsp + '/' + site + '/' + site + '_'+ aa + '.dat'
+                'nsp13-nsp14_7TBT', 'nsp14-nsp15_7TA4', 'nsp15-nsp16_7TC4', 'apo_6YB7']:
+            # Calculate holo protease ddG total for each amino acid type
+            if not nsp.startswith('apo_'):
+                delta_G_data = read_delta_G_from_file(nsp + '/' + site + '/' + site + '_'+ aa + '.dat')
+                wt_delta_G_data = wt_delta_G_dict.get(nsp)
+                ddG_data = np.zeros((0, 6))
+                for chain in range(min(delta_G_data.shape[0], wt_delta_G_data.shape[0])):
+                    ddG = np.subtract(delta_G_data[chain], wt_delta_G_data[chain])
+                    ddG_data = np.append(ddG_data, [ddG], axis=0)
+                    sheet.write(row + chain, 0, nsp)
+                    sheet.write(row + chain, 1, ddG[0])
+                    sheet.write(row + chain, 3, ddG[1])
+                    sheet.write(row + chain, 5, ddG[2])
+                    sheet.write(row + chain, 6, ddG[3])
+                    sheet.write(row + chain, 8, ddG[4])
+                    sheet.write(row + chain, 9, ddG[5])
+            # Calculate apo protease ddG fold and ddG bind for each amino acid type
             apo_state = 'apo_' + nsp.split('_')[1]
-            apo_delta_G_data_file = apo_state + '/' + site + '/' + site + '_'+ aa + '.dat'
-            calculate_delta_G_bind = False
-            if os.path.isfile(apo_delta_G_data_file):
-                calculate_delta_G_bind = True
-                with open(apo_delta_G_data_file) as pf:
-                    apo_lines = pf.readlines()
-            if os.path.isfile(delta_G_data_file):
-                with open(delta_G_data_file) as pf:
-                    lines = pf.readlines()
-                if len(lines) == 1:
-                    sheet.write(row, 0, nsp)
-                    delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-                    ddG_data = np.subtract(delta_G_data, wt_delta_G_dict.get(nsp))
-                    sheet.write(row, 1, ddG_data[0])
-                    sheet.write(row, 3, ddG_data[1])
-                    sheet.write(row, 5, ddG_data[2])
-                    sheet.write(row, 6, ddG_data[3])
-                    sheet.write(row, 8, ddG_data[4])
-                    sheet.write(row, 9, ddG_data[5])
-                    if calculate_delta_G_bind:
-                        apo_delta_G_data = np.array(apo_lines[0][:-1].split(',')).astype(np.float64) / 2
-                        apo_ddG_data = np.subtract(apo_delta_G_data, wt_apo_delta_G_dict.get(apo_state))
-                        sheet.write(row, 2, float(ddG_data[0]) - float(apo_ddG_data[0]))
-                        sheet.write(row, 4, float(ddG_data[1]) - float(apo_ddG_data[1]))
-                        sheet.write(row, 7, float(ddG_data[3]) - float(apo_ddG_data[3]))
-                        ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data)
-                        ddG_fold_n += 1
-                    row += 1
-                else:
-                    wt_delta_G_data_1, wt_delta_G_data_2 = wt_delta_G_dict.get(nsp)
-                    if calculate_delta_G_bind:
-                        wt_apo_delta_G_data_1, wt_apo_delta_G_data_2 = wt_apo_delta_G_dict.get(apo_state)
-                    sheet.write(row, 0, nsp + '_1')
-                    delta_G_data_1 = np.array(lines[0][:-1].split(',')).astype(np.float64)
-                    ddG_data_1 = np.subtract(delta_G_data_1, wt_delta_G_data_1)
-                    sheet.write(row, 1, ddG_data_1[0])
-                    sheet.write(row, 3, ddG_data_1[1])
-                    sheet.write(row, 5, ddG_data_1[2])
-                    sheet.write(row, 6, ddG_data_1[3])
-                    sheet.write(row, 8, ddG_data_1[4])
-                    sheet.write(row, 9, ddG_data_1[5])
-                    if calculate_delta_G_bind:
-                        apo_delta_G_data_1 = np.array(apo_lines[0][:-1].split(',')).astype(np.float64)
-                        apo_ddG_data_1 = np.subtract(apo_delta_G_data_1, wt_apo_delta_G_data_1)
-                        sheet.write(row, 2, float(ddG_data_1[0]) - float(apo_ddG_data_1[0]))
-                        sheet.write(row, 4, float(ddG_data_1[1]) - float(apo_ddG_data_1[1]))
-                        sheet.write(row, 7, float(ddG_data_1[3]) - float(apo_ddG_data_1[3]))
-                        ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_1)
-                        ddG_fold_n += 1
-                    row += 1
-                    sheet.write(row, 0, nsp + '_2')
-                    delta_G_data_2 = np.array(lines[1][:-1].split(',')).astype(np.float64)
-                    ddG_data_2 = np.subtract(delta_G_data_2, wt_delta_G_data_2)
-                    sheet.write(row, 1, ddG_data_2[0])
-                    sheet.write(row, 3, ddG_data_2[1])
-                    sheet.write(row, 5, ddG_data_2[2])
-                    sheet.write(row, 6, ddG_data_2[3])
-                    sheet.write(row, 8, ddG_data_2[4])
-                    sheet.write(row, 9, ddG_data_2[5])
-                    if calculate_delta_G_bind:
-                        apo_delta_G_data_2 = np.array(apo_lines[1][:-1].split(',')).astype(np.float64)
-                        apo_ddG_data_2 = np.subtract(apo_delta_G_data_2, wt_apo_delta_G_data_2)
-                        sheet.write(row, 2, float(ddG_data_2[0]) - float(apo_ddG_data_2[0]))
-                        sheet.write(row, 4, float(ddG_data_2[1]) - float(apo_ddG_data_2[1]))
-                        sheet.write(row, 7, float(ddG_data_2[3]) - float(apo_ddG_data_2[3]))
-                        ddG_fold_data = np.add(ddG_fold_data, apo_ddG_data_2)
-                        ddG_fold_n += 1
-                    row += 1
+            apo_delta_G_data = read_delta_G_from_file(apo_state + '/' + site + '/' + site + '_'+ aa + '.dat')
+            wt_apo_delta_G_data = wt_delta_G_dict.get(apo_state)
+            for chain in range(min(apo_delta_G_data.shape[0], wt_apo_delta_G_data.shape[0])):
+                apo_ddG = np.subtract(apo_delta_G_data[chain], wt_apo_delta_G_data[chain])
+                ddG_fold = np.add(ddG_fold, apo_ddG)
+                ddG_fold_n += 1
+                if ddG_data.shape[0] > 0 and not nsp.startswith('apo_'):
+                        sheet.write(row + chain, 2, float(ddG_data[chain][0]) - float(apo_ddG[0]))
+                        sheet.write(row + chain, 4, float(ddG_data[chain][1]) - float(apo_ddG[1]))
+                        sheet.write(row + chain, 7, float(ddG_data[chain][3]) - float(apo_ddG[3]))
+            if not nsp.startswith('apo_'):
+                row += ddG_data.shape[0]
+        # Write averaged apo protease ddG
         if ddG_fold_n > 0:
-            ddG_fold_data = ddG_fold_data / ddG_fold_n
-            sheet.write(1, 1, ddG_fold_data[0])
+            ddG_fold = ddG_fold / ddG_fold_n
+            sheet.write(1, 0, 'apo')
+            sheet.write(1, 1, ddG_fold[0])
             sheet.write(1, 2, 'NA')
-            sheet.write(1, 3, ddG_fold_data[1])
+            sheet.write(1, 3, ddG_fold[1])
             sheet.write(1, 4, 'NA')
-            sheet.write(1, 5, ddG_fold_data[2])
-            sheet.write(1, 6, ddG_fold_data[3])
+            sheet.write(1, 5, ddG_fold[2])
+            sheet.write(1, 6, ddG_fold[3])
             sheet.write(1, 7, 'NA')
-            sheet.write(1, 8, ddG_fold_data[4])
-            sheet.write(1, 9, ddG_fold_data[5])
+            sheet.write(1, 8, ddG_fold[4])
+            sheet.write(1, 9, ddG_fold[5])
     workbook.save(site + '.xls')
 
 def calculate_inhibitor_ddG(inhibitor, site, native_aa):
-    delta_G_data_file = inhibitor + '/' + site + '/' + site + '_'+ native_aa + '.dat'
-    with open(delta_G_data_file) as pf:
-        lines = pf.readlines()
-    if len(lines) == 1:
-        wt_inhibitor_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-    else:
-        wt_inhibitor_delta_G_data = (np.array(lines[0][:-1].split(',')).astype(np.float64), \
-                np.array(lines[1][:-1].split(',')).astype(np.float64))
+    wt_inhibitor_delta_G_data = read_delta_G_from_file(inhibitor + '/' + site + '/' + site + '_'+ native_aa + '.dat')
     apo_state = 'apo_' + inhibitor.split('_')[1]
-    apo_delta_G_data_file = apo_state + '/' + site + '/' + site + '_'+ native_aa + '.dat'
-    with open(apo_delta_G_data_file) as pf:
-        lines = pf.readlines()
-    if len(lines) == 1:
-        wt_apo_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-    else:
-        wt_apo_delta_G_data = (np.array(lines[0][:-1].split(',')).astype(np.float64), \
-                np.array(lines[1][:-1].split(',')).astype(np.float64))
+    wt_apo_delta_G_data = read_delta_G_from_file(apo_state + '/' + site + '/' + site + '_'+ native_aa + '.dat')
     workbook_read = xlrd.open_workbook(inhibitor + '/' + site + '.xls')
     workbook = copy(workbook_read)
     for aa in ['A', 'G', 'I', 'L', 'P', 'V', 'F', 'W', 'Y', \
                 'D', 'E', 'R', 'H', 'K', 'S', 'T', 'C', 'M', 'N', 'Q']:
         mutation = site + aa
-        # sheet_read = workbook_read.sheet_by_name(mutation)
         sheet = workbook.get_sheet(mutation)
-        apo_delta_G_data_file = apo_state + '/' + site + '/' + site + '_'+ aa + '.dat'
-        calculate_delta_G_bind = False
-        if os.path.isfile(apo_delta_G_data_file):
-            calculate_delta_G_bind = True
-            with open(apo_delta_G_data_file) as pf:
-                apo_lines = pf.readlines()
-        delta_G_data_file = inhibitor + '/' + site + '/' + site + '_'+ aa + '.dat'
-        if os.path.isfile(delta_G_data_file):
-            with open(delta_G_data_file) as pf:
-                lines = pf.readlines()
-            if len(lines) == 1:
-                inhibitor_delta_G_data = np.array(lines[0][:-1].split(',')).astype(np.float64) / 2
-                inhibitor_ddG_data = np.subtract(inhibitor_delta_G_data, wt_inhibitor_delta_G_data)
-                sheet.write(21, 0, inhibitor)
-                sheet.write(21, 1, inhibitor_ddG_data[0])
-                sheet.write(21, 3, inhibitor_ddG_data[1])
-                sheet.write(21, 5, inhibitor_ddG_data[2])
-                sheet.write(21, 6, inhibitor_ddG_data[3])
-                sheet.write(21, 8, inhibitor_ddG_data[4])
-                sheet.write(21, 9, inhibitor_ddG_data[5])
-                if calculate_delta_G_bind:
-                    apo_delta_G_data = np.array(apo_lines[0][:-1].split(',')).astype(np.float64) / 2
-                    apo_ddG_data = np.subtract(apo_delta_G_data, wt_apo_delta_G_data)
-                    sheet.write(21, 2, float(inhibitor_ddG_data[0]) - apo_ddG_data[0])
-                    sheet.write(21, 4, float(inhibitor_ddG_data[1]) - apo_ddG_data[1])
-                    sheet.write(21, 7, float(inhibitor_ddG_data[3]) - apo_ddG_data[3])
-            else:
-                inhibitor_delta_G_data_1 = np.array(lines[0][:-1].split(',')).astype(np.float64)
-                inhibitor_ddG_data_1 = np.subtract(inhibitor_delta_G_data_1, wt_inhibitor_delta_G_data[0])
-                sheet.write(21, 0, inhibitor + '_1')
-                sheet.write(21, 1, inhibitor_ddG_data_1[0])
-                sheet.write(21, 3, inhibitor_ddG_data_1[1])
-                sheet.write(21, 5, inhibitor_ddG_data_1[2])
-                sheet.write(21, 6, inhibitor_ddG_data_1[3])
-                sheet.write(21, 8, inhibitor_ddG_data_1[4])
-                sheet.write(21, 9, inhibitor_ddG_data_1[5])
-                if calculate_delta_G_bind:
-                    apo_delta_G_data_1 = np.array(apo_lines[0][:-1].split(',')).astype(np.float64)
-                    apo_ddG_data_1 = np.subtract(apo_delta_G_data_1, wt_apo_delta_G_data[0])
-                    sheet.write(21, 2, float(inhibitor_ddG_data_1[0]) - apo_ddG_data_1[0])
-                    sheet.write(21, 4, float(inhibitor_ddG_data_1[1]) - apo_ddG_data_1[1])
-                    sheet.write(21, 7, float(inhibitor_ddG_data_1[3]) - apo_ddG_data_1[3])
-                inhibitor_delta_G_data_2 = np.array(lines[1][:-1].split(',')).astype(np.float64)
-                inhibitor_ddG_data_2 = np.subtract(inhibitor_delta_G_data_2, wt_inhibitor_delta_G_data[1])
-                sheet.write(21, 0, inhibitor + '_2')
-                sheet.write(21, 1, inhibitor_ddG_data_2[0])
-                sheet.write(21, 3, inhibitor_ddG_data_2[1])
-                sheet.write(21, 5, inhibitor_ddG_data_2[2])
-                sheet.write(21, 6, inhibitor_ddG_data_2[3])
-                sheet.write(21, 8, inhibitor_ddG_data_2[4])
-                sheet.write(21, 9, inhibitor_ddG_data_2[5])
-                if calculate_delta_G_bind:
-                    apo_delta_G_data_2 = np.array(apo_lines[1][:-1].split(',')).astype(np.float64)
-                    apo_ddG_data_2 = np.subtract(apo_delta_G_data_2, wt_apo_delta_G_data[1])
-                    sheet.write(21, 2, float(inhibitor_ddG_data_2[0]) - apo_ddG_data_2[0])
-                    sheet.write(21, 4, float(inhibitor_ddG_data_2[1]) - apo_ddG_data_2[1])
-                    sheet.write(21, 7, float(inhibitor_ddG_data_2[3]) - apo_ddG_data_2[3])
+        apo_ddG_data = np.zeros((0, 6))
+        apo_delta_G_data = read_delta_G_from_file(apo_state + '/' + site + '/' + site + '_'+ aa + '.dat')
+        for chain in range(min(apo_delta_G_data.shape[0], wt_apo_delta_G_data.shape[0])):
+            apo_ddG = np.subtract(apo_delta_G_data[chain], wt_apo_delta_G_data[chain])
+            apo_ddG_data = np.append(apo_ddG_data, [apo_ddG], axis=0)
+        inhibitor_delta_G_data = read_delta_G_from_file(inhibitor + '/' + site + '/' + site + '_'+ aa + '.dat')
+        for chain in range(min(inhibitor_delta_G_data.shape[0], wt_inhibitor_delta_G_data.shape[0])):
+            inhibitor_ddG = np.subtract(inhibitor_delta_G_data[chain], wt_inhibitor_delta_G_data[chain])
+            sheet.write(21 + chain, 0, inhibitor)
+            sheet.write(21 + chain, 1, inhibitor_ddG[0])
+            sheet.write(21 + chain, 3, inhibitor_ddG[1])
+            sheet.write(21 + chain, 5, inhibitor_ddG[2])
+            sheet.write(21 + chain, 6, inhibitor_ddG[3])
+            sheet.write(21 + chain, 8, inhibitor_ddG[4])
+            sheet.write(21 + chain, 9, inhibitor_ddG[5])
+            if apo_ddG_data.shape[0] > 0:
+                sheet.write(21 + chain, 2, float(inhibitor_ddG[0]) - apo_ddG_data[chain][0])
+                sheet.write(21 + chain, 4, float(inhibitor_ddG[1]) - apo_ddG_data[chain][1])
+                sheet.write(21 + chain, 7, float(inhibitor_ddG[3]) - apo_ddG_data[chain][3])
     workbook.save(inhibitor + '/' + site + '.xls')
 
 
@@ -271,8 +145,7 @@ if __name__ == '__main__':
     args = parse_arguments()
     site, native_aa = args.site_aa
     if not args.inhibitor:
-        wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_delta_G_dict = read_variant_delta_G(site, native_aa)
-        calculate_variant_ddG(site, wt_apo_delta_G_data, wt_apo_delta_G_dict, wt_delta_G_dict)
+        wt_delta_G_dict = read_variant_delta_G(site, native_aa)
+        calculate_variant_ddG(site, wt_delta_G_dict)
     else:
         calculate_inhibitor_ddG(args.inhibitor, site, native_aa)
-        
