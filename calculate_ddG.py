@@ -112,7 +112,7 @@ def calculate_inhibitor_ddG(inhibitor, site, native_aa):
     wt_inhibitor_delta_G_data = read_delta_G_from_file(inhibitor + '/' + site + '/' + site + '_'+ native_aa + '.dat')
     apo_state = 'apo_' + inhibitor.split('_')[1]
     wt_apo_delta_G_data = read_delta_G_from_file(apo_state + '/' + site + '/' + site + '_'+ native_aa + '.dat')
-    workbook_read = xlrd.open_workbook(inhibitor + '/' + site + '.xls')
+    workbook_read = xlrd.open_workbook(site + '.xls')
     workbook = copy(workbook_read)
     for aa in ['A', 'G', 'I', 'L', 'P', 'V', 'F', 'W', 'Y', \
                 'D', 'E', 'R', 'H', 'K', 'S', 'T', 'C', 'M', 'N', 'Q']:
