@@ -323,158 +323,158 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     # Add C601WAT constraints
     if pose_idx_C601WAT != 0:
         if site != 164:
-            # harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/164/ND1'), 0.2, 0.35)
-            harmonic_fc = FlatHarmonicFunc(3.0, 0.2, 0.35)
+            # harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/164/ND1'), 0.5, 0.2)
+            harmonic_fc = FlatHarmonicFunc(3.0, 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_C601WAT_O, atom_A164H_ND1, harmonic_fc))
         if site != 187:
-            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/187/OD2'), 0.2, 0.35)
+            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/187/OD2'), 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_C601WAT_O, atom_A187D_OD2, harmonic_fc))
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/41/N'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/41/N'), 0.5, 0.2)
         pose.add_constraint(AtomPairConstraint(atom_C601WAT_O, atom_A41H_N, harmonic_fc))
         if site != 41:
-            # harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/41/ND1'), 0.2, 0.35)
-            harmonic_fc = FlatHarmonicFunc(3.0, 0.2, 0.35)
+            # harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/601/O','xtal//' + pro_chain + '/41/ND1'), 0.5, 0.2)
+            harmonic_fc = FlatHarmonicFunc(3.0, 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_C601WAT_O, atom_A41H_ND1, harmonic_fc))
     # Add C602WAT constraints
     if pose_idx_C602WAT != 0:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/119/N'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/119/N'), 0.5, 0.2)
         pose.add_constraint(AtomPairConstraint(atom_C602WAT_O, atom_A119N_N, harmonic_fc))
         C602WAT_cst_2 = AmbiguousConstraint()
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/119/ND2'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/119/ND2'), 0.5, 0.2)
         C602WAT_cst_2.add_individual_constraint(AtomPairConstraint(atom_C602WAT_O, atom_A119N_ND2, harmonic_fc))
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/119/OD1'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/119/OD1'), 0.5, 0.2)
         C602WAT_cst_2.add_individual_constraint(AtomPairConstraint(atom_C602WAT_O, atom_A119N_OD1, harmonic_fc))
         pose.add_constraint(C602WAT_cst_2)
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/143/O'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/143/O'), 0.5, 0.2)
         pose.add_constraint(AtomPairConstraint(atom_C602WAT_O, atom_A143G_O, harmonic_fc))
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/26/O'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/602/O','xtal//' + pro_chain + '/26/O'), 0.5, 0.2)
         pose.add_constraint(AtomPairConstraint(atom_C602WAT_O, atom_A26T_O, harmonic_fc))
     # Add C603WAT constraints
     if pose_idx_C603WAT != 0:
         if site != 142:
-            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + pro_chain + '/142/OD1'), 0.2, 0.35)
+            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + pro_chain + '/142/OD1'), 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_C603WAT_O, atom_A142N_OD1, harmonic_fc))
             if atom_B507_NE2:
-                harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.2, 0.35)
+                harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.5, 0.2)
                 pose.add_constraint(AtomPairConstraint(atom_C603WAT_O, atom_B507_NE2, harmonic_fc))
             if pose_idx_C604WAT != 0:
-                harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + wat_chain + '/604/O'), 0.2, 0.35)
+                harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + wat_chain + '/604/O'), 0.5, 0.2)
                 pose.add_constraint(AtomPairConstraint(atom_C603WAT_O, atom_C604WAT_O, harmonic_fc))
             if pose_idx_C605WAT != 0:
-                harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + wat_chain2 + '/605/O'), 0.2, 0.35)
+                harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/603/O','xtal//' + wat_chain2 + '/605/O'), 0.5, 0.2)
                 pose.add_constraint(AtomPairConstraint(atom_C603WAT_O, atom_F605WAT_O, harmonic_fc))
     # Add C604WAT constraints
     if pose_idx_C604WAT != 0:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/604/O','xtal//' + pro_chain + '/142/N'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/604/O','xtal//' + pro_chain + '/142/N'), 0.5, 0.2)
         pose.add_constraint(AtomPairConstraint(atom_C604WAT_O, atom_A142N_N, harmonic_fc))
         if pose_idx_C605WAT != 0:
-            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/604/O','xtal//' + wat_chain2 + '/605/O'), 0.2, 0.35)
+            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/604/O','xtal//' + wat_chain2 + '/605/O'), 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_C604WAT_O, atom_F605WAT_O, harmonic_fc))
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/142/N','xtal//' + wat_chain + '/604/O','xtal//' + wat_chain2 + '/605/O'), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/142/N','xtal//' + wat_chain + '/604/O','xtal//' + wat_chain2 + '/605/O'), 0.4)
             pose.add_constraint(AngleConstraint(atom_A142N_N, atom_C604WAT_O, atom_F605WAT_O, circular_harmonic_fc))
     # Add C605WAT constraints
     if pose_idx_C605WAT != 0:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/605/O','xtal//' + pro_chain + '/1/N'), 0.2, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/605/O','xtal//' + pro_chain + '/1/N'), 0.5, 0.2)
         pose.add_constraint(AtomPairConstraint(atom_C605WAT_O, atom_A1S_N, harmonic_fc))
         if site != 166:
-            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/605/O','xtal//' + pro_chain + '/1/OG'), 0.2, 0.35)
+            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + wat_chain + '/605/O','xtal//' + pro_chain + '/1/OG'), 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_C605WAT_O, atom_A1S_OG, harmonic_fc))
         if pose_idx_C604WAT != 0:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/1/N','xtal//' + wat_chain + '/605/O','xtal//' + wat_chain2 + '/604/O'), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/1/N','xtal//' + wat_chain + '/605/O','xtal//' + wat_chain2 + '/604/O'), 0.4)
             pose.add_constraint(AngleConstraint(atom_A1S_N, atom_C605WAT_O, atom_F604WAT_O, circular_harmonic_fc))
     # Add beta sheet constraints between A166E and B505
     if atom_B505_O:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/N','xtal//' + subs_chain + atom_B505_O_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/N','xtal//' + subs_chain + atom_B505_O_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A166E_N, atom_B505_O, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/CA','xtal//' + pro_chain + '/166/N','xtal//' + subs_chain + atom_B505_O_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/CA','xtal//' + pro_chain + '/166/N','xtal//' + subs_chain + atom_B505_O_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A166E_CA, atom_A166E_N, atom_B505_O, circular_harmonic_fc))
         if atom_B505_C:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/N','xtal//' + subs_chain + atom_B505_O_str,'xtal//' + subs_chain + atom_B505_C_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/N','xtal//' + subs_chain + atom_B505_O_str,'xtal//' + subs_chain + atom_B505_C_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A166E_N, atom_B505_O, atom_B505_C, circular_harmonic_fc))
     if atom_B505_N:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A166E_O, atom_B505_N, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/C','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/C','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A166E_C, atom_A166E_O, atom_B505_N, circular_harmonic_fc))
         if atom_B505_CA:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str,'xtal//' + subs_chain + atom_B505_CA_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str,'xtal//' + subs_chain + atom_B505_CA_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A166E_O, atom_B505_N, atom_B505_CA, circular_harmonic_fc))
     # Add covalent bond constraints between A145C and B507
     if covalent and atom_B507_C:
-        harmonic_fc = HarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/145/SG','xtal//' + subs_chain + atom_B507_C_str), 0.1)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/145/SG','xtal//' + subs_chain + atom_B507_C_str), 0.1, 0.03)
         pose.add_constraint(AtomPairConstraint(atom_A145C_SG, atom_B507_C, harmonic_fc))
     # Add H-bonding constraints between A164H and B507
     if atom_B507_N:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_N_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_N_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A164H_O, atom_B507_N, harmonic_fc))
         if atom_B507_CA:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_N_str,'xtal//' + subs_chain + atom_B507_CA_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/164/O','xtal//' + subs_chain + atom_B507_N_str,'xtal//' + subs_chain + atom_B507_CA_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A164H_O, atom_B507_N, atom_B507_CA, circular_harmonic_fc))
     # Add H-bonding constraints between A143G and B507
     if atom_B507_O:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/143/N','xtal//' + subs_chain + atom_B507_O_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/143/N','xtal//' + subs_chain + atom_B507_O_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A143G_N, atom_B507_O, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/143/CA','xtal//' + pro_chain + '/143/N','xtal//' + subs_chain + atom_B507_O_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/143/CA','xtal//' + pro_chain + '/143/N','xtal//' + subs_chain + atom_B507_O_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A143G_CA, atom_A143G_N, atom_B507_O, circular_harmonic_fc))
         if atom_B507_C:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/143/N','xtal//' + subs_chain + atom_B507_O_str,'xtal//' + subs_chain + atom_B507_C_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/143/N','xtal//' + subs_chain + atom_B507_O_str,'xtal//' + subs_chain + atom_B507_C_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A143G_N, atom_B507_O, atom_B507_C, circular_harmonic_fc))
     # Add H-bonding constraints between A145C and B507
     if atom_B507_O:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A145C_N, atom_B507_O, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/145/CA','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/145/CA','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A145C_CA, atom_A145C_N, atom_B507_O, circular_harmonic_fc))
         if atom_B507_C:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str,'xtal//' + subs_chain + atom_B507_C_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/145/N','xtal//' + subs_chain + atom_B507_O_str,'xtal//' + subs_chain + atom_B507_C_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A145C_N, atom_B507_O, atom_B507_C, circular_harmonic_fc))
     # Add H-bonding constraints between A163H and B507 sidechain
     if site != 163 and atom_B507_OE1:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A163H_NE2, atom_B507_OE1, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/163/CD2','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/163/CD2','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A163H_CD2, atom_A163H_NE2, atom_B507_OE1, circular_harmonic_fc))
         if atom_B507_CD:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/163/NE2','xtal//' + subs_chain + atom_B507_OE1_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A163H_NE2, atom_B507_OE1, atom_B507_CD, circular_harmonic_fc))
     # Add H-bonding constraints between A140F and B507 sidechain
     if atom_B507_NE2:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A140F_O, atom_B507_NE2, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/140/C','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/140/C','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A140F_C, atom_A140F_O, atom_B507_NE2, circular_harmonic_fc))
         if atom_B507_CD:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/140/O','xtal//' + subs_chain + atom_B507_NE2_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A140F_O, atom_B507_NE2, atom_B507_CD, circular_harmonic_fc))
     # Add H-bonding constraints between A166E and B507 sidechain
     if site != 166 and atom_B507_NE2:
-        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str), 0.05, 0.35)
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str), 0.5, 0.1)
         pose.add_constraint(AtomPairConstraint(atom_A166E_OE1, atom_B507_NE2, harmonic_fc))
-        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/CD','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str), 0.35)
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/CD','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str), 0.4)
         pose.add_constraint(AngleConstraint(atom_A166E_CD, atom_A166E_OE1, atom_B507_NE2, circular_harmonic_fc))
         if atom_B507_CD:
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/OE1','xtal//' + subs_chain + atom_B507_NE2_str,'xtal//' + subs_chain + atom_B507_CD_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A166E_OE1, atom_B507_NE2, atom_B507_CD, circular_harmonic_fc))
     # Add beta sheet constraints between A26T and B509
     if atom_B509_O:
         dst = cmd.distance('tmp','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + atom_B509_O_str)
         if dst < 4:
-            harmonic_fc = FlatHarmonicFunc(dst, 0.05, 0.35)
+            harmonic_fc = FlatHarmonicFunc(dst, 0.5, 0.1)
             pose.add_constraint(AtomPairConstraint(atom_A26T_N, atom_B509_O, harmonic_fc))
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/CA','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + atom_B509_O_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/CA','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + atom_B509_O_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A26T_CA, atom_A26T_N, atom_B509_O, circular_harmonic_fc))
             if atom_B509_C:
-                circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + atom_B509_O_str,'xtal//' + subs_chain + atom_B509_C_str), 0.35)
+                circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/N','xtal//' + subs_chain + atom_B509_O_str,'xtal//' + subs_chain + atom_B509_C_str), 0.4)
                 pose.add_constraint(AngleConstraint(atom_A26T_N, atom_B509_O, atom_B509_C, circular_harmonic_fc))
     if atom_B509_N:
         dst = cmd.distance('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + atom_B509_N_str)
         if dst < 4:
-            harmonic_fc = FlatHarmonicFunc(dst, 0.05, 0.35)
+            harmonic_fc = FlatHarmonicFunc(dst, 0.5, 0.1)
             pose.add_constraint(AtomPairConstraint(atom_A26T_O, atom_B509_N, harmonic_fc))
-            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/C','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + atom_B509_N_str), 0.35)
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/C','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + atom_B509_N_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A26T_C, atom_A26T_O, atom_B509_N, circular_harmonic_fc))
             if atom_B509_CA:
-                circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + atom_B509_N_str,'xtal//' + subs_chain + atom_B509_CA_str), 0.35)
+                circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/26/O','xtal//' + subs_chain + atom_B509_N_str,'xtal//' + subs_chain + atom_B509_CA_str), 0.4)
                 pose.add_constraint(AngleConstraint(atom_A26T_O, atom_B509_N, atom_B509_CA, circular_harmonic_fc))
 
 def add_coordinate_constraint(pose, xtal_pose, monomer_length, no_coordinate_csts=None):
