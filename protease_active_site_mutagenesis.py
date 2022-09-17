@@ -197,6 +197,9 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
     atom_A166E_OE1 = AtomID(pose.residue(pose_idx_A166E).atom_index("OE1"), pose_idx_A166E)
     pose_idx_A187D = pose.pdb_info().pdb2pose(pro_chain, 187)
     atom_A187D_OD2 = AtomID(pose.residue(pose_idx_A187D).atom_index("OD2"), pose_idx_A187D)
+    pose_idx_A189Q = pose.pdb_info().pdb2pose(pro_chain, 189)
+    atom_A189Q_CD = AtomID(pose.residue(pose_idx_A189Q).atom_index("CD"), pose_idx_A189Q)
+    atom_A189Q_OE1 = AtomID(pose.residue(pose_idx_A189Q).atom_index("OE1"), pose_idx_A189Q)
     # Define substrate atoms
     pose_idx_B401 = pose.pdb_info().pdb2pose(subs_chain, 401)
     pose_idx_B505 = pose.pdb_info().pdb2pose(subs_chain, 505)
@@ -226,6 +229,21 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         with contextlib.suppress(RuntimeError):
             atom_B505_O = AtomID(pose.residue(pose_idx_B401).atom_index("OB5"), pose_idx_B401)
             atom_B505_O_str = '/401/OB5'
+    pose_idx_B506 = pose.pdb_info().pdb2pose(subs_chain, 506)
+    atom_B506_N = None
+    atom_B506_CA = None
+    if pose_idx_B506 != 0:
+        atom_B506_N = AtomID(pose.residue(pose_idx_B506).atom_index("N"), pose_idx_B506)
+        atom_B506_N_str = '/506/N'
+        atom_B506_CA = AtomID(pose.residue(pose_idx_B506).atom_index("CA"), pose_idx_B506)
+        atom_B506_CA_str = '/506/CA'
+    elif pose_idx_B401 != 0:
+        with contextlib.suppress(RuntimeError):
+            atom_B506_N = AtomID(pose.residue(pose_idx_B401).atom_index("NB6"), pose_idx_B401)
+            atom_B506_N_str = '/401/NB6'
+        with contextlib.suppress(RuntimeError):
+            atom_B506_CA = AtomID(pose.residue(pose_idx_B401).atom_index("CAB6"), pose_idx_B401)
+            atom_B506_CA_str = '/401/CAB6'
     pose_idx_B507 = pose.pdb_info().pdb2pose(subs_chain, 507)
     atom_B507_N = None
     atom_B507_CA = None
@@ -399,6 +417,15 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         if atom_B505_CA:
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/166/O','xtal//' + subs_chain + atom_B505_N_str,'xtal//' + subs_chain + atom_B505_CA_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A166E_O, atom_B505_N, atom_B505_CA, circular_harmonic_fc))
+    # Add H-bonding constraints between A189Q sidechain and B506
+    if site != 189 and atom_B506_N:
+        harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str), 0.5, 0.1)
+        pose.add_constraint(AtomPairConstraint(atom_A189Q_OE1, atom_B506_N, harmonic_fc))
+        circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/189/CD','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str), 0.4)
+        pose.add_constraint(AngleConstraint(atom_A189Q_CD, atom_A189Q_OE1, atom_B506_N, circular_harmonic_fc))
+        if atom_B506_CA:
+            circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str,'xtal//' + subs_chain + atom_B506_CA_str), 0.4)
+            pose.add_constraint(AngleConstraint(atom_A189Q_OE1, atom_B506_N, atom_B506_CA, circular_harmonic_fc))
     # Add covalent bond constraints between A145C and B507
     if covalent and atom_B507_C:
         harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/145/SG','xtal//' + subs_chain + atom_B507_C_str), 0.1, 0.03)
@@ -709,10 +736,9 @@ if __name__ == '__main__':
         xtal_ref_pdb = args.xtal
     if args.cst:
         add_fa_constraints_from_cmdline(pose, score_function)
-    else:
-        apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site, args.covalent)
-        if not args.symmetry:
-                apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site, args.covalent)
+    apply_constraints(pose, xtal_ref_pdb, substrate_length, True, args.site, args.covalent)
+    if not args.symmetry:
+        apply_constraints(pose, xtal_ref_pdb, substrate_length, False, args.site, args.covalent)
     if args.enzdescst:
         apply_enzyme_design_constraints(pose, args.enzdescst)
     add_coordinate_constraint(pose, xtal_pose, monomer_length, args.no_coordinate_csts)
