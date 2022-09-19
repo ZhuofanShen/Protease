@@ -13,7 +13,7 @@ from pyrosetta.rosetta.core.pack.task.operation import ExtraRotamers, \
 from pyrosetta.rosetta.core.pack import *
 from pyrosetta.rosetta.core.scoring import ScoreType
 from pyrosetta.rosetta.core.scoring.constraints import add_fa_constraints_from_cmdline, \
-    AmbiguousConstraint, AngleConstraint, AtomPairConstraint
+    AmbiguousConstraint, AngleConstraint, AtomPairConstraint, DihedralConstraint
 from pyrosetta.rosetta.core.scoring.func import CircularHarmonicFunc, FlatHarmonicFunc, HarmonicFunc
 from pyrosetta.rosetta.core.scoring.symmetry import SymmetricScoreFunction
 from pyrosetta.rosetta.core.select.residue_selector import \
@@ -338,10 +338,8 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
         atom_C605WAT_O = AtomID(pose.residue(pose_idx_C605WAT).atom_index("O"), pose_idx_C605WAT)
         atom_F605WAT_O = AtomID(pose.residue(pose_idx_F605WAT).atom_index("O"), pose_idx_F605WAT)
     pose_idx_C606WAT = pose.pdb_info().pdb2pose(wat_chain, 606)
-    pose_idx_F606WAT = pose.pdb_info().pdb2pose(wat_chain2, 606)
     if pose_idx_C606WAT != 0:
         atom_C606WAT_O = AtomID(pose.residue(pose_idx_C606WAT).atom_index("O"), pose_idx_C606WAT)
-        atom_F606WAT_O = AtomID(pose.residue(pose_idx_F606WAT).atom_index("O"), pose_idx_F606WAT)
     # Load xtal symm pdb
     cmd.load(xtal_ref_pdb, 'xtal')
     # Add C601WAT constraints
@@ -425,15 +423,19 @@ def apply_constraints(pose, xtal_ref_pdb, substrate_length, is_first_monomer, si
             pose.add_constraint(AngleConstraint(atom_A166E_O, atom_B505_N, atom_B505_CA, circular_harmonic_fc))
     # Add H-bonding constraints between A189Q sidechain and B506
     if site != 189 and atom_B506_N:
-        if pose_idx_C606WAT == 0:
-            harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str), 0.5, 0.1)
+        dst = cmd.distance('tmp','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str)
+        if pose_idx_C606WAT == 0 and dst < 4:
+            harmonic_fc = FlatHarmonicFunc(dst, 0.5, 0.1)
             pose.add_constraint(AtomPairConstraint(atom_A189Q_OE1, atom_B506_N, harmonic_fc))
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/189/CD','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str), 0.4)
             pose.add_constraint(AngleConstraint(atom_A189Q_CD, atom_A189Q_OE1, atom_B506_N, circular_harmonic_fc))
             if atom_B506_CA:
                 circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str,'xtal//' + subs_chain + atom_B506_CA_str), 0.4)
                 pose.add_constraint(AngleConstraint(atom_A189Q_OE1, atom_B506_N, atom_B506_CA, circular_harmonic_fc))
-        else: # water-mediated H-bonding
+                circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.dihedral('tmp','xtal//' + pro_chain + '/189/CD', \
+                        'xtal//' + pro_chain + '/189/OE1','xtal//' + subs_chain + atom_B506_N_str,'xtal//' + subs_chain + atom_B506_CA_str), 0.4)
+                pose.add_constraint(DihedralConstraint(atom_A189Q_CD, atom_A189Q_OE1, atom_B506_N, atom_B506_CA, circular_harmonic_fc))
+        elif pose_idx_C606WAT != 0: # water-mediated H-bonding
             harmonic_fc = FlatHarmonicFunc(cmd.distance('tmp','xtal//' + pro_chain + '/189/NE2','xtal//' + wat_chain + '/606/O'), 0.5, 0.2)
             pose.add_constraint(AtomPairConstraint(atom_A189Q_NE2, atom_C606WAT_O, harmonic_fc))
             circular_harmonic_fc = CircularHarmonicFunc(math.pi / 180 * cmd.angle('tmp','xtal//' + pro_chain + '/189/CD','xtal//' + pro_chain + '/189/NE2','xtal//' + wat_chain + '/606/O'), 0.4)
