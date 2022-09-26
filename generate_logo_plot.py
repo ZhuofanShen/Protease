@@ -44,7 +44,7 @@ def convert_xls_to_csv(workbook_name, chains, fitness_type):
     for chain in range(chains):
         sheet_read = workbook_read.sheet_by_index(chain)
         positions = np.empty(0)
-        with open(workbook_name[:-4] + '.' + fitness_type + '.' + str(chain + 1) + 'pssm', 'w') as pf:
+        with open(workbook_name[:-4] + '.' + fitness_type + '.' + str(chain + 1) + '.pssm', 'w') as pf:
             pf.write('pos	A	G	I	L	P	V	F	W	Y	D	E	R	H	K	S	T	C	M	N	Q\n1	')
             current_pos = sheet_read.cell_value(1, 0)[:-1]
             npos = 1
@@ -64,12 +64,12 @@ def convert_xls_to_csv(workbook_name, chains, fitness_type):
 
 def logo_plot(workbook_name, chains, positions, fitness_type):
     for chain in range(chains):
-        df = pd.read_csv(workbook_name[:-4] + '.' + fitness_type + '.' + str(chain + 1) + 'pssm', delim_whitespace=True, index_col=0)
+        df = pd.read_csv(workbook_name[:-4] + '.' + fitness_type + '.' + str(chain + 1) + '.pssm', delim_whitespace=True, index_col=0)
         logo = logomaker.Logo(df, font_name='Arial Rounded MT Bold', figsize=(len(positions), 10))
         logo.ax.set_xticks(range(1, len(positions) + 1))
         logo.ax.set_xticklabels(positions)
         # logo.fig.show()
-        logo.fig.savefig(workbook_name[:-4] + '.' + fitness_type + '.' + str(chain + 1) + 'png', bbox_inches='tight', dpi=200)
+        logo.fig.savefig(workbook_name[:-4] + '.' + fitness_type + '.' + str(chain + 1) + '.png', bbox_inches='tight', dpi=200)
 
 if __name__ == '__main__':
     args = parse_arguments()
