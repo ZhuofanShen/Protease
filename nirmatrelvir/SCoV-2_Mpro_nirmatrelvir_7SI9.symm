@@ -1,0 +1,20 @@
+symmetry_name symm__2
+E = 2*VRT0_base + 1*(VRT0_base:VRT1_base)
+anchor_residue COM
+virtual_coordinates_start
+xyz VRT0  -0.9273192,-0.0000120,-0.3742715  -0.3742715,-0.0000036,0.9273192  -0.0000289,0.4161015,-0.0004196
+xyz VRT0_base  -0.9273192,-0.0000120,-0.3742715  -0.3742715,-0.0000036,0.9273192  11.8028424,0.4162540,4.7632894
+xyz VRT1  0.9273192,0.0000120,0.3742715  0.3742715,0.0000036,-0.9273192  -0.0000289,0.4161015,-0.0004196
+xyz VRT1_base  0.9273192,0.0000120,0.3742715  0.3742715,0.0000036,-0.9273192  -11.8029003,0.4159490,-4.7641286
+xyz VRT  0.0000000,0.0000012,1.0000000  1.0000000,0.0000124,-0.0000000  -0.0000289,0.4161027,0.9995804
+virtual_coordinates_stop
+connect_virtual JUMP0_to_com VRT0 VRT0_base
+connect_virtual JUMP0_to_subunit VRT0_base SUBUNIT
+connect_virtual JUMP1_to_com VRT1 VRT1_base
+connect_virtual JUMP1_to_subunit VRT1_base SUBUNIT
+connect_virtual JUMP0 VRT VRT0
+connect_virtual JUMP1 VRT0 VRT1
+set_dof JUMP0_to_com x(12.7279494201238) angle_x
+set_dof JUMP0_to_subunit angle_x angle_y angle_z
+set_jump_group JUMPGROUP2 JUMP0_to_com JUMP1_to_com
+set_jump_group JUMPGROUP3 JUMP1_to_subunit JUMP0_to_subunit
